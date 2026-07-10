@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwapCards - Prototipo Élite</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
@@ -38,7 +38,7 @@
             border-radius: 24px;
             padding: 24px;
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
-            padding-bottom: 80px;
+            padding-bottom: 90px;
             position: relative;
         }
 
@@ -124,11 +124,17 @@
 
         .ocultar-elemento { display: none !important; }
 
-        /* DISEÑO DE LA VISTA QR */
-        .qr-card-container { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
-        .qr-wrapper { background: white; padding: 16px; border-radius: 20px; border: 1px solid var(--borde); box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 24px; }
-        #canvas-qr { width: 220px; height: 220px; display: block; }
+        /* DISEÑO DE LA VISTA QR MEJORADA */
+        .qr-card-container { display: flex; flex-direction: column; align-items: center; padding: 10px 0; }
+        .qr-wrapper { 
+            background: white; padding: 20px; border-radius: 28px; border: 1px solid var(--borde); 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 24px; position: relative;
+            display: flex; justify-content: center; align-items: center;
+        }
         
+        /* Contenedor SVG QR adaptativo */
+        #contenedor-qr-svg { width: 220px; height: 220px; display: block; }
+
         .btn-accion-principal {
             width: 100%; max-width: 320px; background-color: var(--primario); color: white; border: none;
             padding: 14px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer;
@@ -137,13 +143,77 @@
         .btn-accion-principal:active { transform: scale(0.98); }
         .btn-accion-principal svg { width: 20px; height: 20px; fill: white; }
 
-        /* ESCANER DE CÁMARA */
-        #contenedor-lector { width: 100%; max-width: 350px; margin: 16px auto; border-radius: 16px; overflow: hidden; display: none; border: 1px solid var(--borde); }
+        /* POPUP MODAL EXCLUSIVO PARA EL ESCÁNER DE CÁMARA */
+        .modal-escaner-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 2000; opacity: 0; pointer-events: none; transition: opacity 0.3s ease;
+        }
+        .modal-escaner-overlay.activo { opacity: 1; pointer-events: auto; }
+        
+        .ventana-escaner {
+            width: 90%; max-width: 380px; background: #ffffff; border-radius: 24px;
+            overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25); position: relative;
+        }
+        .header-escaner {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 16px 20px; border-bottom: 1px solid var(--borde);
+        }
+        .header-escaner h3 { margin: 0; font-size: 16px; font-weight: 700; }
+        .btn-cerrar-escaner {
+            background: #f1f5f9; border: none; font-size: 16px; font-weight: 700;
+            width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; color: var(--texto-principal);
+        }
+        #contenedor-lector { width: 100%; aspect-ratio: 1; background: #000; }
 
-        /* TARJETA DE MATCH AUTOMÁTICO */
-        .tarjeta-match { background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 16px; margin-top: 20px; display: none; }
-        .titulo-match { color: #166534; font-size: 16px; font-weight: 700; margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px; }
-        .cuerpo-match { font-size: 14px; color: #1e293b; line-height: 1.5; }
+        /* NUEVA PESTAÑA / INTERFAZ DE SELECCIÓN DE INTERCAMBIO (ESTILO SCREENSHOT) */
+        .interfaz-intercambio {
+            width: 100%; background: #ffffff; border-radius: 20px; display: none;
+            flex-direction: column; animation: fadeIn 0.3s ease-out;
+        }
+        .instruccion-intercambio {
+            font-size: 14px; color: var(--texto-secundario); margin: 0 0 20px 0;
+            line-height: 1.4; text-align: left;
+        }
+        .bloque-intercambio { margin-bottom: 24px; }
+        .header-bloque {
+            display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;
+        }
+        .header-bloque h3 { margin: 0; font-size: 16px; font-weight: 700; color: var(--texto-principal); }
+        .header-bloque .btn-todas { background: none; border: none; color: var(--primario); font-size: 14px; font-weight: 600; cursor: pointer; }
+        .subtexto-bloque { font-size: 13px; color: var(--texto-secundario); margin: -8px 0 12px 0; }
+        
+        /* Lista Horizontal de Figuras Redondas del flujo */
+        .lista-figuras-intercambio {
+            display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0;
+        }
+        .figura-voto {
+            width: 52px; height: 52px; border-radius: 50%; border: 2px solid var(--borde);
+            background-color: #f8fafc; color: var(--texto-principal); font-size: 12px; font-weight: 700;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            cursor: pointer; transition: all 0.2s ease; user-select: none; box-sizing: border-box; line-height: 1.1;
+        }
+        .figura-voto span { font-size: 10px; font-weight: 500; color: var(--texto-secundario); }
+        
+        /* Estados Activos (Seleccionados en Azul según tu screenshot) */
+        .figura-voto.seleccionada {
+            background-color: #2563eb; border-color: #2563eb; color: #ffffff;
+        }
+        .figura-voto.seleccionada span { color: rgba(255, 255, 255, 0.8); }
+
+        .btn-confirmar-cambio {
+            width: 100%; background-color: #2563eb; color: white; border: none;
+            padding: 16px; border-radius: 16px; font-size: 15px; font-weight: 700;
+            cursor: pointer; text-align: center; margin-top: 10px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+        .btn-cancelar-intercambio {
+            width: 100%; background: none; border: none; color: var(--texto-secundario);
+            padding: 12px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 8px; text-align: center;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
         /* BARRA DE NAVEGACIÓN INFERIOR (BOTTOM NAV) */
         .bottom-nav {
@@ -159,7 +229,7 @@
         .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
         .nav-item span { font-size: 11px; font-weight: 700; }
 
-        /* POPUP MODAL GENERAL */
+        /* POPUP MODAL GENERAL COPIAS */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
         .modal-overlay.activo { opacity: 1; pointer-events: auto; }
         .modal-box { background: white; padding: 24px; border-radius: 20px; width: 280px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); transform: scale(0.9); transition: transform 0.2s ease; }
@@ -210,29 +280,47 @@
     </div>
 
     <div id="vista-qr" class="vista-app">
-        <div class="header-app">
+        <div class="header-app" id="header-seccion-qr">
             <header>
                 <h1>Intercambio QR</h1>
                 <p>Muestra tu código o escanea otro álbum</p>
             </header>
         </div>
         
-        <div class="qr-card-container">
-            <div class="qr-wrapper">
-                <canvas id="canvas-qr"></canvas>
+        <div class="qr-card-container" id="bloque-qr-generado">
+            <div class="qr-wrapper" id="cuadro-qr">
+                <div id="contenedor-qr-svg"></div>
             </div>
             
-            <button class="btn-accion-principal" id="btn-camara" onclick="alternarEscaneoCamara()">
+            <button class="btn-accion-principal" onclick="abrirEscanerModal()">
                 <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm2 2v3h3V6zm0 11h3v3H6zm11 3h3v-3h-3zm-6-3h3v-3h-3zm3-4h3V7h-3zm-3-3h3V4h-3zm6-3h3V4h-3zm0 7h3v-3h-3zm-9 4h7v7H4zm2 2v3h3v-3zm5-5h7v7h-7zm2 2v3h3v-3z"/></svg>
-                <span id="txt-boton-camara">Escanear QR de Amigo</span>
+                <span>Escanear QR de Amigo</span>
             </button>
+        </div>
 
-            <div id="contenedor-lector"></div>
+        <div class="interfaz-intercambio" id="vista-resultado-canje">
+            <p class="instruccion-intercambio">Elige las figuritas a dar y recibir. Confirma para actualizar tu álbum.</p>
 
-            <div class="tarjeta-match" id="tarjeta-match-resultado">
-                <h4 class="titulo-match">🤝 ¡Match de Intercambio Encontrado!</h4>
-                <div class="cuerpo-match" id="cuerpo-match-resultado"></div>
+            <div class="bloque-intercambio">
+                <div class="header-bloque">
+                    <h3 id="titulo-recibir-cant">Recibir 0</h3>
+                    <button class="btn-todas" onclick="seleccionarTodasLasFiguras('recibir')">Todas</button>
+                </div>
+                <p class="subtexto-bloque">Tu amigo/a tiene figuritas que vos necesitas</p>
+                <div class="lista-figuras-intercambio" id="lista-para-recibir"></div>
             </div>
+
+            <div class="bloque-intercambio">
+                <div class="header-bloque">
+                    <h3 id="titulo-entregar-cant">Entregar 0</h3>
+                    <button class="btn-todas" onclick="seleccionarTodasLasFiguras('entregar')">Todas</button>
+                </div>
+                <p class="subtexto-bloque">Vos tenes figuritas que tu amigo/a necesita</p>
+                <div class="lista-figuras-intercambio" id="lista-para-entregar"></div>
+            </div>
+
+            <button class="btn-confirmar-cambio" id="btn-ejecutar-match" onclick="confirmarEIntercambiarSeleccion()">Confirmar cambio (0 por 0)</button>
+            <button class="btn-cancelar-intercambio" onclick="cancelarFlujoCanje()">Cancelar</button>
         </div>
     </div>
 
@@ -247,6 +335,16 @@
         </div>
     </nav>
 
+</div>
+
+<div class="modal-escaner-overlay" id="modal-escaner">
+    <div class="ventana-escaner">
+        <div class="header-escaner">
+            <h3>Escanear Código de Barras / QR</h3>
+            <button class="btn-cerrar-escaner" onclick="cerrarEscanerModal()">✕</button>
+        </div>
+        <div id="contenedor-lector"></div>
+    </div>
 </div>
 
 <div class="modal-overlay" id="modal-ajuste">
@@ -323,7 +421,10 @@
     let filtroTabActual = 'todo';
     let idSeleccionadoModal = null;
     let html5QrcodeScanner = null;
-    let qrInstancia = null;
+
+    // Listas temporales activas para la transacción actual
+    let listaIntercambioRecibir = [];
+    let listaIntercambioEntregar = [];
 
     function toggleSeccion(idSeccion) { document.getElementById(idSeccion).classList.toggle("cerrado"); }
 
@@ -335,9 +436,10 @@
         document.getElementById(idNav).classList.add("activo");
         
         if(idVista === 'vista-qr') {
+            cancelarFlujoCanje(); // Resetea visuales
             generarCodigoQRPropio();
         } else {
-            detenerCamaraSiEstaActiva();
+            cerrarEscanerModal();
         }
         window.scrollTo(0,0);
     }
@@ -377,7 +479,7 @@
             info.rango.forEach(num => {
                 const idBarajita = `${info.prefijo}-${num}`;
                 inventario[idBarajita] = 0;
-                mapaLlavesOrdenadas.push(idBarajita); // <-- CORREGIDO: L Mayúscula
+                mapaLlavesOrdenadas.push(idBarajita); 
                 totalCasillasAlbum++;
 
                 const esEspecial = info.especiales.map(String).includes(String(num));
@@ -419,7 +521,6 @@
             contenedorPadre.appendChild(divSeccion);
         });
 
-        qrInstancia = new QRious({ element: document.getElementById('canvas-qr'), size: 250, level: 'L' });
         actualizarMétricasGlobales();
     }
 
@@ -463,48 +564,65 @@
         document.getElementById("lbl-repetidas").innerText = `${totalRepetidas} repetidas`;
     }
 
-    /* MOTOR DE COMPRESIÓN Y CREACIÓN DE QR (Ajustado a Base 36) */
+    /* MOTOR DE CREACIÓN DE QR EMBELLECIDO (CON LOGO CENTRAL "B") */
     function generarCodigoQRPropio() {
         let vectorData = "SC26:"; 
         mapaLlavesOrdenadas.forEach(id => {
-            let cant = inventario[id] || 0;
-            if (cant > 35) cant = 35; // Límite seguro para un solo carácter [0-9a-z]
-            vectorData += cant.toString(36); 
+            vectorData += inventario[id] > 9 ? "9" : inventario[id]; 
         });
-        qrInstancia.value = vectorData;
+
+        // Crear QR usando la matriz limpia de qrcode-generator
+        const qr = qrcode(0, 'M');
+        qr.addData(vectorData);
+        qr.make();
+        
+        // Obtenemos el SVG nativo crudo para inyectarle el isotipo central
+        let svgRaw = qr.createSvgTag(5, 0);
+        
+        // Creamos el nodo SVG del Isotipo "B" (Círculo estético + B calada)
+        const logoSvgElement = `
+            <g transform="translate(100, 100) scale(0.9)">
+                <circle cx="25" cy="25" r="24" fill="url(#gradienteSwap)" stroke="#ffffff" stroke-width="2.5" />
+                <path d="M18 13h10c3.5 0 6 2 6 5.5v.1c0 2.4-1.6 4.4-4 5.1 2.8.6 4.5 2.8 4.5 5.5v.1c0 3.8-2.7 5.7-6.5 5.7H18V13zm6.5 8.5h3c1.4 0 2.3-.7 2.3-1.8v-.1c0-1.1-.9-1.8-2.3-1.8h-3v3.7zm0 10.2h3.5c1.5 0 2.5-.8 2.5-2v-.1c0-1.2-1-2-2.5-2h-3.5v4.1z" fill="#ffffff"/>
+            </g>
+            <defs>
+                <linearGradient id="gradienteSwap" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0ea5e9" />
+                    <stop offset="100%" stop-color="#2563eb" />
+                </linearGradient>
+            </defs>
+        `;
+        
+        // Inyectamos el logo justo antes del cierre de la etiqueta SVG
+        svgRaw = svgRaw.replace('</svg>', `${logoSvgElement}</svg>`);
+        
+        const contenedor = document.getElementById("contenedor-qr-svg");
+        contenedor.innerHTML = svgRaw;
+        
+        // Ajustamos los atributos para asegurar responsividad absoluta
+        const svgElement = contenedor.querySelector("svg");
+        svgElement.setAttribute("width", "100%");
+        svgElement.setAttribute("height", "100%");
     }
 
-    /* SISTEMA DE ESCANEO DE CÁMARA NATIVA */
-    function alternarEscaneoCamara() {
-        const contenedor = document.getElementById("contenedor-lector");
-        const txtBoton = document.getElementById("txt-boton-camara");
-
-        if(contenedor.style.display === "block") {
-            detenerCamaraSiEstaActiva();
-        } else {
-            contenedor.style.display = "block";
-            txtBoton.innerText = "Cancelar Escaneo";
-            document.getElementById("tarjeta-match-resultado").style.display = "none";
-
-            html5QrcodeScanner = new Html5Qrcode("contenedor-lector");
-            html5QrcodeScanner.start(
-                { facingMode: "environment" }, 
-                { fps: 10, qrbox: { width: 250, height: 250 } },
-                onScanSuccess,
-                onScanFailure
-            ).catch(err => {
-                alert("Error al acceder a la cámara nativa.");
-                detenerCamaraSiEstaActiva();
-            });
-        }
+    /* MODAL EXCLUSIVO PARA EL ESCANEO DE CÁMARA NATIVA */
+    function abrirEscanerModal() {
+        document.getElementById("modal-escaner").classList.add("activo");
+        
+        html5QrcodeScanner = new Html5Qrcode("contenedor-lector");
+        html5QrcodeScanner.start(
+            { facingMode: "environment" }, 
+            { fps: 12, qrbox: { width: 250, height: 250 } },
+            onScanSuccess,
+            onScanFailure
+        ).catch(err => {
+            alert("Error al acceder a la cámara.");
+            cerrarEscanerModal();
+        });
     }
 
-    function detenerCamaraSiEstaActiva() {
-        const contenedor = document.getElementById("contenedor-lector");
-        const txtBoton = document.getElementById("txt-boton-camara");
-        if(contenedor) contenedor.style.display = "none";
-        if(txtBoton) txtBoton.innerText = "Escanear QR de Amigo";
-
+    function cerrarEscanerModal() {
+        document.getElementById("modal-escaner").classList.remove("activo");
         if (html5QrcodeScanner) {
             html5QrcodeScanner.stop().then(() => {
                 html5QrcodeScanner.clear();
@@ -513,65 +631,171 @@
         }
     }
 
-    /* SISTEMA DE DECODIFICACIÓN QR (Ajustado a Base 36) */
     function onScanSuccess(decodedText, decodedResult) {
         if(!decodedText.startsWith("SC26:")) {
-            alert("El código escaneado no es un álbum válido de SwapCards.");
-            detenerCamaraSiEstaActiva();
+            alert("El código escaneado no es válido de SwapCards.");
+            cerrarEscanerModal();
             return;
         }
 
-        detenerCamaraSiEstaActiva();
+        cerrarEscanerModal();
         
         const streamRemoto = decodedText.substring(5);
-        let teSirvenAMi = [];
-        let leSirvenAEl = [];
+        let paraMiFaltantes = [];
+        let paraElRepetidas = [];
 
         mapaLlavesOrdenadas.forEach((id, index) => {
             const miCantidad = inventario[id];
-            // Decodifica cada carácter de forma unívoca en Base 36
-            const cantidadRemota = parseInt(streamRemoto[index] || "0", 36);
+            const cantidadRemota = parseInt(streamRemoto[index] || "0");
 
+            // Él la tiene repetida (cantidadRemota > 1) y a mí me falta (miCantidad == 0)
             if(miCantidad === 0 && cantidadRemota > 1) {
-                teSirvenAMi.push(id);
+                paraMiFaltantes.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
+            // Yo la tengo repetida (miCantidad > 1) y a él le falta (cantidadRemota == 0)
             if(cantidadRemota === 0 && miCantidad > 1) {
-                leSirvenAEl.push(id);
+                paraElRepetidas.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
         });
 
-        procesarYMostrarResultadoMatch(teSirvenAMi, leSirvenAEl);
+        desplegarInterfazDeSeleccion(paraMiFaltantes, paraElRepetidas);
     }
 
     function onScanFailure(error) { }
 
-    function procesarYMostrarResultadoMatch(paraMi, paraEl) {
-        const tarjeta = document.getElementById("tarjeta-match-resultado");
-        const cuerpo = document.getElementById("cuerpo-match-resultado");
-        tarjeta.style.display = "block";
+    /* RENDER DE LA LISTA DE SELECCIÓN CON CÍRCULOS INTERACTIVOS (ESTILO POPUP) */
+    function desplegarInterfazDeSeleccion(paraMi, paraEl) {
+        // Ocultamos el generador de QR inicial
+        document.getElementById("bloque-qr-generado").style.display = "none";
+        document.getElementById("header-seccion-qr").style.display = "none";
+        
+        const panelCanje = document.getElementById("vista-resultado-canje");
+        panelCanje.style.display = "flex";
 
-        if(paraMi.length === 0 && paraEl.length === 0) {
-            cuerpo.innerHTML = "<strong>No hay coincidencias inmediatas.</strong><br>Ninguno tiene repetidas que al otro le falten actualmente.";
+        const contenedorRecibir = document.getElementById("lista-para-recibir");
+        const contenedorEntregar = document.getElementById("lista-para-entregar");
+        
+        contenedorRecibir.innerHTML = "";
+        contenedorEntregar.innerHTML = "";
+        
+        listaIntercambioRecibir = [];
+        listaIntercambioEntregar = [];
+
+        // Inyectar en panel Recibir
+        if(paraMi.length === 0) {
+            contenedorRecibir.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>Tu amigo no posee repetidas que te falten.</p>";
+        } else {
+            paraMi.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "figura-voto";
+                itemDiv.id = `voto-recibir-${item.id}`;
+                itemDiv.innerHTML = `${item.tag}<span>${item.num}</span>`;
+                itemDiv.onclick = () => alternarSeleccionFichaCanje('recibir', item.id);
+                contenedorRecibir.appendChild(itemDiv);
+            });
+        }
+
+        // Inyectar en panel Entregar
+        if(paraEl.length === 0) {
+            contenedorEntregar.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>No tienes repetidas que a tu amigo le falten.</p>";
+        } else {
+            paraEl.forEach(item => {
+                const itemDiv = document.createElement("div");
+                itemDiv.className = "figura-voto";
+                itemDiv.id = `voto-entregar-${item.id}`;
+                itemDiv.innerHTML = `${item.tag}<span>${item.num}</span>`;
+                itemDiv.onclick = () => alternarSeleccionFichaCanje('entregar', item.id);
+                contenedorEntregar.appendChild(itemDiv);
+            });
+        }
+
+        actualizarContadoresBotonMatch();
+    }
+
+    function alternarSeleccionFichaCanje(tipo, id) {
+        const elemento = document.getElementById(`voto-${tipo}-${id}`);
+        if(tipo === 'recibir') {
+            if(listaIntercambioRecibir.includes(id)) {
+                listaIntercambioRecibir = listaIntercambioRecibir.filter(x => x !== id);
+                elemento.classList.remove("seleccionada");
+            } else {
+                listaIntercambioRecibir.push(id);
+                elemento.classList.add("seleccionada");
+            }
+        } else {
+            if(listaIntercambioEntregar.includes(id)) {
+                listaIntercambioEntregar = listaIntercambioEntregar.filter(x => x !== id);
+                elemento.classList.remove("seleccionada");
+            } else {
+                listaIntercambioEntregar.push(id);
+                elemento.classList.add("seleccionada");
+            }
+        }
+        actualizarContadoresBotonMatch();
+    }
+
+    function seleccionarTodasLasFiguras(tipo) {
+        const contenedor = document.getElementById(tipo === 'recibir' ? "lista-para-recibir" : "lista-para-entregar");
+        const fichas = contenedor.querySelectorAll(".figura-voto");
+        
+        fichas.forEach(ficha => {
+            const idBarajita = ficha.id.replace(`voto-${tipo}-`, "");
+            if(tipo === 'recibir') {
+                if(!listaIntercambioRecibir.includes(idBarajita)) {
+                    listaIntercambioRecibir.push(idBarajita);
+                    ficha.classList.add("seleccionada");
+                }
+            } else {
+                if(!listaIntercambioEntregar.includes(idBarajita)) {
+                    listaIntercambioEntregar.push(idBarajita);
+                    ficha.classList.add("seleccionada");
+                }
+            }
+        });
+        actualizarContadoresBotonMatch();
+    }
+
+    function actualizarContadoresBotonMatch() {
+        document.getElementById("titulo-recibir-cant").innerText = `Recibir ${listaIntercambioRecibir.length}`;
+        document.getElementById("titulo-entregar-cant").innerText = `Entregar ${listaIntercambioEntregar.length}`;
+        
+        const btn = document.getElementById("btn-ejecutar-match");
+        btn.innerText = `Confirmar cambio (${listaIntercambioRecibir.length} por ${listaIntercambioEntregar.length})`;
+    }
+
+    function confirmarEIntercambiarSeleccion() {
+        if(listaIntercambioRecibir.length === 0 && listaIntercambioEntregar.length === 0) {
+            alert("Por favor selecciona al menos una barajita para realizar el canje.");
             return;
         }
 
-        let renderHtml = "";
-        if(paraMi.length > 0) {
-            renderHtml += `<p style='margin:0 0 8px 0;'>🎁 <strong>Te sirven de él (${paraMi.length}):</strong><br><span style='color:#166534; font-weight:600;'>${paraMi.join(', ')}</span></p>`;
-        } else {
-            renderHtml += `<p style='margin:0 0 8px 0; color:var(--texto-secundario);'>No tiene repetidas que te falten.</p>`;
-        }
+        // Sumar las que recibo
+        listaIntercambioRecibir.forEach(id => {
+            inventario[id] = 1; // Ahora la tengo
+            actualizarInterfazCasilla(id);
+        });
 
-        if(paraEl.length > 0) {
-            renderHtml += `<p style='margin:12px 0 0 0;'>🤝 <strong>Tú le puedes dar (${paraEl.length}):</strong><br><span style='color:#1e3a8a; font-weight:600;'>${paraEl.join(', ')}</span></p>`;
-        } else {
-            renderHtml += `<p style='margin:12px 0 0 0; color:var(--texto-secundario);'>No tienes repetidas que le falten.</p>`;
-        }
+        // Restar las que entrego (pierdo una copia repetida)
+        listaIntercambioEntregar.forEach(id => {
+            if(inventario[id] > 1) {
+                inventario[id] = inventario[id] - 1;
+                actualizarInterfazCasilla(id);
+            }
+        });
 
-        cuerpo.innerHTML = renderHtml;
+        alert("¡Álbum actualizado y sincronizado con éxito!");
+        actualizarMétricasGlobales();
+        cancelarFlujoCanje();
     }
 
-    /* FILTROS Y OTROS SOPORTES VISUALES */
+    function cancelarFlujoCanje() {
+        document.getElementById("vista-resultado-canje").style.display = "none";
+        document.getElementById("bloque-qr-generado").style.display = "flex";
+        document.getElementById("header-seccion-qr").style.display = "flex";
+        generarCodigoQRPropio();
+    }
+
+    /* FILTROS Y BUSQUEDA COHESIVA */
     function controlarEscrituraBuscador() {
         const input = document.getElementById("input-buscar");
         const btnLimpiar = document.getElementById("btn-limpiar");
@@ -647,23 +871,37 @@
         });
     }
 
+    /* MOTOR DE COMPARTIR LISTA DE TEXTO (CORREGIDO COMPLETO) */
     function compartirLista() {
         let unicasPoseídas = 0;
         let totalRepetidas = 0;
-        Object.keys(inventario).forEach(id => { if (inventario[id] >= 1) unicasPoseídas++; if (inventario[id] > 1) totalRepetidas += (inventario[id] - 1); });
+        
+        Object.keys(inventario).forEach(id => { 
+            if (inventario[id] >= 1) unicasPoseídas++; 
+            if (inventario[id] > 1) totalRepetidas += (inventario[id] - 1); 
+        });
+        
         let faltantes = totalCasillasAlbum - unicasPoseídas;
 
         let texto = `🔴 *LO QUE ME FALTA: ${faltantes}*\n`;
+        
         Object.keys(estructuraAlbum).forEach(idSec => {
             const info = estructuraAlbum[idSec];
             let listaFaltantesSeccion = [];
-            info.rango.forEach(num => { if(inventario[`${info.prefijo}-${num}`] === 0) listaFaltantesSeccion.push(num); });
-            if(listaFaltantesSeccion.length === info.rango.length) texto += `• ${info.nombre}: *Todas (1-${info.rango.length})*\n`;
-            else if(listaFaltantesSeccion.length > 0) texto += `• ${info.nombre}: ${listaFaltantesSeccion.join(', ')}\n`;
+            info.rango.forEach(num => { 
+                if(inventario[`${info.prefijo}-${num}`] === 0) listaFaltantesSeccion.push(num); 
+            });
+            
+            if(listaFaltantesSeccion.length === info.rango.length) {
+                texto += `• ${info.nombre}: Todas\n`;
+            } else if(listaFaltantesSeccion.length > 0) {
+                texto += `• ${info.nombre}: ${listaFaltantesSeccion.join(', ')}\n`;
+            }
         });
 
-        texto += `\n🟢 *MIS REPETIDAS (PARA CAMBIO): ${totalRepetidas}*\n`;
+        texto += `\n🟢 *MIS REPETIDAS: ${totalRepetidas}*\n`;
         let tieneRepetidas = false;
+        
         Object.keys(estructuraAlbum).forEach(idSec => {
             const info = estructuraAlbum[idSec];
             let listaRepetidasSeccion = [];
@@ -671,17 +909,27 @@
                 const cant = inventario[`${info.prefijo}-${num}`];
                 if(cant > 1) {
                     tieneRepetidas = true;
-                    if ((cant - 1) === 1) listaRepetidasSeccion.push(num);
-                    else listaRepetidasSeccion.push(`${num} (x${cant - 1})`);
+                    if ((cant - 1) === 1) {
+                        listaRepetidasSeccion.push(num);
+                    } else {
+                        listaRepetidasSeccion.push(`${num} (x${cant - 1})`);
+                    }
                 }
             });
-            if(listaRepetidasSeccion.length > 0) text += `• ${info.nombre}: ${listaRepetidasSeccion.join(', ')}\n`;
+            if(listaRepetidasSeccion.length > 0) {
+                texto += `• ${info.nombre}: ${listaRepetidasSeccion.join(', ')}\n`;
+            }
         });
+        
         if(!tieneRepetidas) texto += `• Ninguna repetida por ahora.\n`;
-        texto += `\n📲 _¡Intercambia conmigo usando SwapCards!_`;
+        texto += `\n📲 _Intercambia conmigo usando SwapCards!_`;
 
-        if (navigator.share) navigator.share({ title: 'Mi Lista', text: texto }).catch(console.error);
-        else { navigator.clipboard.writeText(texto); alert("¡Lista copiada al portapapeles!"); }
+        if (navigator.share) {
+            navigator.share({ title: 'Mi Álbum SwapCards', text: texto }).catch(console.error);
+        } else { 
+            navigator.clipboard.writeText(texto); 
+            alert("¡Lista de faltantes y repetidas copiada al portapapeles con éxito!"); 
+        }
     }
 
     window.onload = inicializarAlbum;
