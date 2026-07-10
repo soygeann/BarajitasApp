@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwapCards - Prototipo Élite</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode"></script>
+    <style>
+        :root {
+            --bg-principal: #f8fafc;
+            --bg-tarjeta: #ffffff;
+            --texto-principal: #1e293b;
+            --texto-secundario: #64748b;
+            --borde: #e2e8f0;
+            --primario: #0ea5e9; 
+            --exito: #10b981; 
+            --peligro: #ef4444; 
+            --especial-borde: #eab308; 
+            --especial-bg: #fef08a;
+            --desactivado: #cbd5e1;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-principal);
+            color: var(--texto-principal);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 450px;
+            background-color: var(--bg-tarjeta);
+            border-radius: 24px;
+            padding: 24px;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05);
+            padding-bottom: 80px;
+            position: relative;
+        }
+
+        .vista-app { display: none; }
+        .vista-app.activa { display: block; }
+
+        .header-app {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        header h1 { margin: 0; font-size: 26px; font-weight: 700; }
+        header p { margin: 4px 0 0 0; color: var(--texto-secundario); font-size: 14px; }
+
+        .btn-compartir {
+            background-color: #f1f5f9; border: none; padding: 12px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: background-color 0.2s;
+        }
+        .btn-compartir:hover { background-color: #e2e8f0; }
+        .btn-compartir svg { width: 20px; height: 20px; fill: var(--texto-principal); }
+
+        /* TARJETA DE PROGRESO RESUMIDA */
+        .tarjeta-progreso {
+            background-color: #f1f5f9; border: 1px solid var(--borde);
+            border-radius: 20px; padding: 16px 20px; margin-bottom: 20px;
+        }
+        .progreso-detalles { display: flex; gap: 24px; font-size: 14px; font-weight: 700; color: var(--texto-principal); }
+        .detalle-item { display: flex; align-items: center; gap: 8px; }
+        .punto-rojo { width: 10px; height: 10px; background-color: var(--peligro); border-radius: 50%; }
+        .punto-verde { width: 10px; height: 10px; background-color: var(--exito); border-radius: 50%; }
+
+        /* BUSCADOR CON BOTÓN LIMPIAR */
+        .contenedor-busqueda { margin-bottom: 12px; position: relative; display: flex; align-items: center; }
+        .input-busqueda {
+            width: 100%; box-sizing: border-box; padding: 12px 40px 12px 16px; border-radius: 14px;
+            border: 1px solid var(--borde); font-size: 14px; font-weight: 500; outline: none;
+            transition: border-color 0.2s; background-color: #f8fafc;
+        }
+        .input-busqueda:focus { border-color: var(--primario); background-color: #ffffff; box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1); }
+        
+        .btn-limpiar-busqueda {
+            position: absolute; right: 14px; background: none; border: none; color: var(--texto-secundario);
+            font-size: 16px; font-weight: 600; cursor: pointer; padding: 4px; display: none; user-select: none;
+        }
+        .btn-limpiar-busqueda:hover { color: var(--texto-principal); }
+
+        .barra-filtros { background-color: #f1f5f9; padding: 4px; border-radius: 14px; display: flex; margin-bottom: 24px; gap: 4px; }
+        .btn-filtro { flex: 1; background: none; border: none; padding: 10px; font-size: 14px; font-weight: 600; color: var(--texto-secundario); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
+        .btn-filtro.activo { background-color: var(--primario); color: white; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2); }
+
+        /* SECCIONES CONTENEDORAS DINÁMICAS */
+        #contenedor-album-dinamico { display: flex; flex-direction: column; gap: 16px; }
+        .seccion-album { background-color: #ffffff; border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
+        .titulo-seccion { font-size: 15px; font-weight: 700; padding: 14px 16px; background-color: #f8fafc; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
+        .titulo-seccion:hover { background-color: #f1f5f9; }
+        .titulo-texto { display: flex; align-items: center; gap: 8px; }
+        .flecha-colapsar { font-size: 12px; color: var(--texto-secundario); transition: transform 0.2s; }
+        .seccion-album.cerrado .flecha-colapsar { transform: rotate(-90deg); }
+        .grid-barajitas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 16px; }
+        .seccion-album.cerrado .grid-barajitas { display: none; }
+
+        /* ESTILO BARAJITAS */
+        .barajita {
+            aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--desactivado); background-color: #f1f5f9;
+            color: var(--texto-secundario); display: flex; align-items: center; justify-content: center;
+            font-weight: 700; font-size: 13px; cursor: pointer; position: relative; user-select: none; transition: all 0.2s ease;
+        }
+        .barajita:active { transform: scale(0.9); }
+        .barajita.tengo { background-color: #e0f2fe; border-color: var(--primario); color: var(--primario); }
+        .barajita.repetida { background-color: #d1fae5; border-color: var(--exito); color: var(--exito); }
+        
+        .badge-repetida {
+            position: absolute; top: -2px; right: -2px; background-color: var(--exito); color: white;
+            font-size: 9px; font-weight: 800; border-radius: 10px; padding: 2px 5px; border: 1.5px solid white;
+        }
+
+        .barajita.especial { border-color: #fde047; background-color: #fefce8; border-style: dashed; }
+        .barajita.especial.tengo { border-style: solid; background-color: var(--especial-bg); border-color: var(--especial-borde); color: #a16207; }
+        .barajita.especial.repetida { border-color: var(--exito); }
+
+        .ocultar-elemento { display: none !important; }
+
+        /* DISEÑO DE LA VISTA QR */
+        .qr-card-container { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+        .qr-wrapper { background: white; padding: 16px; border-radius: 20px; border: 1px solid var(--borde); box-shadow: 0 4px 12px rgba(0,0,0,0.02); margin-bottom: 24px; }
+        #canvas-qr { width: 220px; height: 220px; display: block; }
+        
+        .btn-accion-principal {
+            width: 100%; max-width: 320px; background-color: var(--primario); color: white; border: none;
+            padding: 14px; border-radius: 16px; font-size: 16px; font-weight: 700; cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 14px rgba(14, 165, 233, 0.3); transition: all 0.2s;
+        }
+        .btn-accion-principal:active { transform: scale(0.98); }
+        .btn-accion-principal svg { width: 20px; height: 20px; fill: white; }
+
+        /* ESCANER DE CÁMARA */
+        #contenedor-lector { width: 100%; max-width: 350px; margin: 16px auto; border-radius: 16px; overflow: hidden; display: none; border: 1px solid var(--borde); }
+
+        /* TARJETA DE MATCH AUTOMÁTICO */
+        .tarjeta-match { background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 16px; padding: 16px; margin-top: 20px; display: none; }
+        .titulo-match { color: #166534; font-size: 16px; font-weight: 700; margin: 0 0 10px 0; display: flex; align-items: center; gap: 6px; }
+        .cuerpo-match { font-size: 14px; color: #1e293b; line-height: 1.5; }
+
+        /* BARRA DE NAVEGACIÓN INFERIOR (BOTTOM NAV) */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
+            width: 100%; max-width: 450px; background-color: rgba(255, 255, 255, 0.92);
+            backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+            border-top: 1px solid var(--borde); display: flex; height: 64px;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.03); z-index: 900; box-sizing: border-box;
+        }
+        @media (min-width: 451px) { .bottom-nav { border-bottom-left-radius: 24px; border-bottom-right-radius: 24px; } }
+        .nav-item { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--texto-secundario); cursor: pointer; transition: color 0.2s; user-select: none; gap: 4px; }
+        .nav-item.activo { color: var(--primario); }
+        .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
+        .nav-item span { font-size: 11px; font-weight: 700; }
+
+        /* POPUP MODAL GENERAL */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
+        .modal-overlay.activo { opacity: 1; pointer-events: auto; }
+        .modal-box { background: white; padding: 24px; border-radius: 20px; width: 280px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); transform: scale(0.9); transition: transform 0.2s ease; }
+        .modal-overlay.activo .modal-box { transform: scale(1); }
+        .modal-box h3 { margin: 0 0 8px 0; font-size: 18px; }
+        .modal-box p { margin: 0 0 16px 0; color: var(--texto-secundario); font-size: 14px; }
+        .modal-controles { display: flex; justify-content: center; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .btn-modal-accion { background-color: #f1f5f9; border: none; width: 44px; height: 44px; font-size: 20px; font-weight: 700; border-radius: 50%; cursor: pointer; color: var(--texto-principal); }
+        .btn-modal-accion:hover { background-color: #e2e8f0; }
+        .input-modal-cantidad { width: 60px; text-align: center; font-size: 22px; font-weight: 700; border: none; outline: none; }
+        .btn-modal-guardar { width: 100%; background-color: var(--primario); color: white; border: none; padding: 12px; border-radius: 12px; font-size: 15px; font-weight: 600; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    
+    <div id="vista-album" class="vista-app activa">
+        <div class="header-app">
+            <header>
+                <h1>Mi Álbum</h1>
+                <p>Mundial de Fútbol 2026</p>
+            </header>
+            <button class="btn-compartir" onclick="compartirLista()" title="Compartir Lista">
+                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+            </button>
+        </div>
+
+        <div class="tarjeta-progreso">
+            <div class="progreso-detalles">
+                <div class="detalle-item"><div class="punto-rojo"></div> <span id="lbl-faltantes">0 faltantes</span></div>
+                <div class="detalle-item"><div class="punto-verde"></div> <span id="lbl-repetidas">0 repetidas</span></div>
+            </div>
+        </div>
+
+        <div class="contenedor-busqueda">
+            <input type="text" id="input-buscar" class="input-busqueda" placeholder="Buscar por país o número (ej: MEX o MEX 2)..." oninput="controlarEscrituraBuscador()">
+            <button id="btn-limpiar" class="btn-limpiar-busqueda" onclick="limpiarBuscador()">✕</button>
+        </div>
+
+        <div class="barra-filtros">
+            <button class="btn-filtro activo" onclick="cambiarFiltroTab('todo', this)">Todo</button>
+            <button class="btn-filtro" onclick="cambiarFiltroTab('faltantes', this)">Faltantes</button>
+            <button class="btn-filtro" onclick="cambiarFiltroTab('repetidas', this)">Repetidas</button>
+        </div>
+
+        <div id="contenedor-album-dinamico"></div>
+    </div>
+
+    <div id="vista-qr" class="vista-app">
+        <div class="header-app">
+            <header>
+                <h1>Intercambio QR</h1>
+                <p>Muestra tu código o escanea otro álbum</p>
+            </header>
+        </div>
+        
+        <div class="qr-card-container">
+            <div class="qr-wrapper">
+                <canvas id="canvas-qr"></canvas>
+            </div>
+            
+            <button class="btn-accion-principal" id="btn-camara" onclick="alternarEscaneoCamara()">
+                <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm2 2v3h3V6zm0 11h3v3H6zm11 3h3v-3h-3zm-6-3h3v-3h-3zm3-4h3V7h-3zm-3-3h3V4h-3zm6-3h3V4h-3zm0 7h3v-3h-3zm-9 4h7v7H4zm2 2v3h3v-3zm5-5h7v7h-7zm2 2v3h3v-3z"/></svg>
+                <span id="txt-boton-camara">Escanear QR de Amigo</span>
+            </button>
+
+            <div id="contenedor-lector"></div>
+
+            <div class="tarjeta-match" id="tarjeta-match-resultado">
+                <h4 class="titulo-match">🤝 ¡Match de Intercambio Encontrado!</h4>
+                <div class="cuerpo-match" id="cuerpo-match-resultado"></div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item activo" id="nav-album" onclick="navegarA('vista-album', 'nav-album')">
+            <svg viewBox="0 0 24 24"><path d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm0 14H8V4h12v12z"/></svg>
+            <span>Mi Álbum</span>
+        </div>
+        <div class="nav-item" id="nav-qr" onclick="navegarA('vista-qr', 'nav-qr')">
+            <svg viewBox="0 0 24 24"><path d="M4 4h7v7H4zm2 2v3h3V6zm0 11h3v3H6zm11 3h3v-3h-3zm-6-3h3v-3h-3zm3-4h3V7h-3zm-3-3h3V4h-3zm6-3h3V4h-3zm0 7h3v-3h-3zm-9 4h7v7H4zm2 2v3h3v-3zm5-5h7v7h-7zm2 2v3h3v-3z"/></svg>
+            <span>QR Canje</span>
+        </div>
+    </nav>
+
+</div>
+
+<div class="modal-overlay" id="modal-ajuste">
+    <div class="modal-box">
+        <h3 id="modal-titulo">MEX-1</h3>
+        <p>Ajustar cantidad de copias</p>
+        <div class="modal-controles">
+            <button class="btn-modal-accion" onclick="cambiarCantidadModal(-1)">-</button>
+            <input type="text" id="modal-input-cant" class="input-modal-cantidad" value="0" readonly>
+            <button class="btn-modal-accion" onclick="cambiarCantidadModal(1)">+</button>
+        </div>
+        <button class="btn-modal-guardar" onclick="guardarCambiosModal()">Confirmar</button>
+    </div>
+</div>
+
+<script>
+    const estructuraAlbum = {
+        "fwc-trofeo": { prefijo: "FWC", nombre: "FWC 🏆", rango: ["00", "1", "2", "3", "4"], especiales: ["00", "1", "2", "3", "4"] },
+        "fwc-mapa": { prefijo: "FWC", nombre: "FWC 🌎", rango: ["5", "6", "7", "8"], especiales: ["5", "6", "7", "8"] },
+        "fwc-historia": { prefijo: "FWC", nombre: "FWC 📜", rango: Array.from({length: 11}, (_, i) => String(i + 9)), especiales: Array.from({length: 11}, (_, i) => String(i + 9)) },
+        "team-mex": { prefijo: "MEX", nombre: "MEX - México 🇲🇽", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-rsa": { prefijo: "RSA", nombre: "RSA - Sudáfrica 🇿🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-kor": { prefijo: "KOR", nombre: "KOR - Corea del Sur 🇰🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cze": { prefijo: "CZE", nombre: "CZE - Rep. Checa 🇨🇿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-can": { prefijo: "CAN", nombre: "CAN - Canadá 🇨🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-bih": { prefijo: "BIH", nombre: "BIH - Bosnia 🇧🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-qat": { prefijo: "QAT", nombre: "QAT - Catar 🇶🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-sui": { prefijo: "SUI", nombre: "SUI - Suiza 🇨🇭", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-bra": { prefijo: "BRA", nombre: "BRA - Brasil 🇧🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-mar": { prefijo: "MAR", nombre: "MAR - Marruecos 🇲🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-hai": { prefijo: "HAI", nombre: "HAI - Haití 🇭🇹", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-sco": { prefijo: "SCO", nombre: "SCO - Escocia 🏴\u200D󠁢󠁳󠁣󠁴󠁿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-usa": { prefijo: "USA", nombre: "USA - Estados Unidos 🇺🇸", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-par": { prefijo: "PAR", nombre: "PAR - Paraguay 🇵🇾", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-aus": { prefijo: "AUS", nombre: "AUS - Australia 🇦🇺", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-tur": { prefijo: "TUR", nombre: "TUR - Turquía 🇹🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-ger": { prefijo: "GER", nombre: "GER - Alemania 🇩🇪", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cuw": { prefijo: "CUW", nombre: "CUW - Curazao 🇨🇼", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-civ": { prefijo: "CIV", nombre: "CIV - Costa de Marfil 🇨🇮", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-ecu": { prefijo: "ECU", nombre: "ECU - Ecuador 🇪🇨", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-ned": { prefijo: "NED", nombre: "NED - Países Bajos 🇳🇱", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-jpn": { prefijo: "JPN", nombre: "JPN - Japón 🇯🇵", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-swe": { prefijo: "SWE", nombre: "SWE - Suecia 🇸🇪", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-tun": { prefijo: "TUN", nombre: "TUN - Túnez 🇹🇳", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-bel": { prefijo: "BEL", nombre: "BEL - Bélgica 🇧🇪", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-egy": { prefijo: "EGY", nombre: "EGY - Egipto 🇪🇬", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-irn": { prefijo: "IRN", nombre: "IRN - Irán 🇮🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-nzl": { prefijo: "NZL", nombre: "NZL - Nueva Zelanda 🇳🇿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-esp": { prefijo: "ESP", nombre: "ESP - España 🇪🇸", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cpv": { prefijo: "CPV", nombre: "CPV - Cabo Verde 🇨🇻", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-ksa": { prefijo: "KSA", nombre: "KSA - Arabia Saudita 🇸🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-uru": { prefijo: "URU", nombre: "URU - Uruguay 🇺🇾", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-fra": { prefijo: "FRA", nombre: "FRA - Francia 🇫🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-sen": { prefijo: "SEN", nombre: "SEN - Senegal 🇸🇳", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-irq": { prefijo: "IRQ", nombre: "IRQ - Irak 🇮🇶", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-nor": { prefijo: "NOR", nombre: "NOR - Noruega 🇳🇴", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-arg": { prefijo: "ARG", nombre: "ARG - Argentina 🇦🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-alg": { prefijo: "ALG", nombre: "ALG - Argelia 🇩🇿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-aut": { prefijo: "AUT", nombre: "AUT - Austria 🇦🇹", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-jor": { prefijo: "JOR", nombre: "JOR - Jordania 🇯🇴", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-por": { prefijo: "POR", nombre: "POR - Portugal 🇵🇹", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cod": { prefijo: "COD", nombre: "COD - R.D. Congo 🇨🇩", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-uzb": { prefijo: "UZB", nombre: "UZB - Uzbekistán 🇺🇿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-col": { prefijo: "COL", nombre: "COL - Colombia 🇨🇴", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-eng": { prefijo: "ENG", nombre: "ENG - Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cro": { prefijo: "CRO", nombre: "CRO - Croacia 🇭🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-gha": { prefijo: "GHA", nombre: "GHA - Ghana 🇬🇭", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-pan": { prefijo: "PAN", nombre: "PAN - Panamá 🇵🇦", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] }
+    };
+
+    const inventario = {};
+    let mapaLlavesOrdenadas = []; 
+    let totalCasillasAlbum = 0;
+    let filtroTabActual = 'todo';
+    let idSeleccionadoModal = null;
+    let html5QrcodeScanner = null;
+    let qrInstancia = null;
+
+    function toggleSeccion(idSeccion) { document.getElementById(idSeccion).classList.toggle("cerrado"); }
+
+    function navegarA(idVista, idNav) {
+        document.querySelectorAll(".vista-app").forEach(vista => vista.classList.remove("activa"));
+        document.querySelectorAll(".nav-item").forEach(item => item.classList.remove("activo"));
+        
+        document.getElementById(idVista).classList.add("activa");
+        document.getElementById(idNav).classList.add("activo");
+        
+        if(idVista === 'vista-qr') {
+            generarCodigoQRPropio();
+        } else {
+            detenerCamaraSiEstaActiva();
+        }
+        window.scrollTo(0,0);
+    }
+
+    function inicializarAlbum() {
+        const contenedorPadre = document.getElementById("contenedor-album-dinamico");
+
+        Object.keys(estructuraAlbum).forEach(idContenedor => {
+            const info = estructuraAlbum[idContenedor];
+            
+            const divSeccion = document.createElement("div");
+            divSeccion.classList.add("seccion-album");
+            divSeccion.id = idContenedor;
+            divSeccion.setAttribute("data-nombre", info.nombre);
+            divSeccion.setAttribute("data-inicial", info.prefijo);
+
+            const divTitulo = document.createElement("div");
+            divTitulo.classList.add("titulo-seccion");
+            divTitulo.onclick = () => toggleSeccion(idContenedor);
+
+            const divTexto = document.createElement("div");
+            divTexto.classList.add("titulo-texto");
+            divTexto.innerText = info.nombre;
+
+            const divFlecha = document.createElement("div");
+            divFlecha.classList.add("flecha-colapsar");
+            divFlecha.innerText = "▼";
+
+            divTitulo.appendChild(divTexto);
+            divTitulo.appendChild(divFlecha);
+            divSeccion.appendChild(divTitulo);
+
+            const divGrid = document.createElement("div");
+            divGrid.classList.add("grid-barajitas");
+            divGrid.id = `grid-${idContenedor}`;
+
+            info.rango.forEach(num => {
+                const idBarajita = `${info.prefijo}-${num}`;
+                inventario[idBarajita] = 0;
+                mapaLlavesOrdenadas.push(idBarajita); // <-- CORREGIDO: L Mayúscula
+                totalCasillasAlbum++;
+
+                const esEspecial = info.especiales.map(String).includes(String(num));
+
+                const divBarajita = document.createElement("div");
+                divBarajita.classList.add("barajita");
+                if (esEspecial) divBarajita.classList.add("especial");
+                divBarajita.id = idBarajita;
+                divBarajita.setAttribute('data-numero', num);
+                divBarajita.innerText = num;
+
+                let pressTimer;
+                let isLongPress = false;
+                
+                divBarajita.addEventListener("click", () => {
+                    if (isLongPress) { isLongPress = false; return; }
+                    modificarCantidad(idBarajita, 1);
+                });
+                
+                divBarajita.addEventListener("mousedown", () => {
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => { abrirModalAjuste(idBarajita); isLongPress = true; }, 600);
+                });
+                divBarajita.addEventListener("mouseup", () => clearTimeout(pressTimer));
+                divBarajita.addEventListener("mouseleave", () => clearTimeout(pressTimer));
+                divBarajita.addEventListener("touchstart", () => {
+                    isLongPress = false;
+                    pressTimer = setTimeout(() => { abrirModalAjuste(idBarajita); isLongPress = true; }, 600);
+                });
+                divBarajita.addEventListener("touchend", (e) => {
+                    clearTimeout(pressTimer);
+                    if (isLongPress) e.preventDefault();
+                });
+
+                divGrid.appendChild(divBarajita);
+            });
+
+            divSeccion.appendChild(divGrid);
+            contenedorPadre.appendChild(divSeccion);
+        });
+
+        qrInstancia = new QRious({ element: document.getElementById('canvas-qr'), size: 250, level: 'L' });
+        actualizarMétricasGlobales();
+    }
+
+    function modificarCantidad(id, cambio) {
+        if (inventario[id] + cambio < 0) return;
+        inventario[id] += cambio;
+        actualizarInterfazCasilla(id);
+        actualizarMétricasGlobales();
+        ejecutarFiltrosCombinados();
+    }
+
+    function actualizarInterfazCasilla(id) {
+        const elemento = document.getElementById(id);
+        const cantidad = inventario[id];
+        elemento.classList.remove("tengo", "repetida");
+        const badgeViejo = elemento.querySelector(".badge-repetida");
+        if (badgeViejo) badgeViejo.remove();
+
+        if (cantidad === 1) {
+            elemento.classList.add("tengo");
+        } else if (cantidad > 1) {
+            elemento.classList.add("tengo", "repetida");
+            const badge = document.createElement("span");
+            badge.classList.add("badge-repetida");
+            badge.innerText = `+${cantidad - 1}`;
+            elemento.appendChild(badge);
+        }
+    }
+
+    function actualizarMétricasGlobales() {
+        let unicasPoseídas = 0;
+        let totalRepetidas = 0;
+        Object.keys(inventario).forEach(id => {
+            const cant = inventario[id];
+            if (cant >= 1) unicasPoseídas++;
+            if (cant > 1) totalRepetidas += (cant - 1);
+        });
+        let faltantes = totalCasillasAlbum - unicasPoseídas;
+
+        document.getElementById("lbl-faltantes").innerText = `${faltantes} faltantes`;
+        document.getElementById("lbl-repetidas").innerText = `${totalRepetidas} repetidas`;
+    }
+
+    /* MOTOR DE COMPRESIÓN Y CREACIÓN DE QR (Ajustado a Base 36) */
+    function generarCodigoQRPropio() {
+        let vectorData = "SC26:"; 
+        mapaLlavesOrdenadas.forEach(id => {
+            let cant = inventario[id] || 0;
+            if (cant > 35) cant = 35; // Límite seguro para un solo carácter [0-9a-z]
+            vectorData += cant.toString(36); 
+        });
+        qrInstancia.value = vectorData;
+    }
+
+    /* SISTEMA DE ESCANEO DE CÁMARA NATIVA */
+    function alternarEscaneoCamara() {
+        const contenedor = document.getElementById("contenedor-lector");
+        const txtBoton = document.getElementById("txt-boton-camara");
+
+        if(contenedor.style.display === "block") {
+            detenerCamaraSiEstaActiva();
+        } else {
+            contenedor.style.display = "block";
+            txtBoton.innerText = "Cancelar Escaneo";
+            document.getElementById("tarjeta-match-resultado").style.display = "none";
+
+            html5QrcodeScanner = new Html5Qrcode("contenedor-lector");
+            html5QrcodeScanner.start(
+                { facingMode: "environment" }, 
+                { fps: 10, qrbox: { width: 250, height: 250 } },
+                onScanSuccess,
+                onScanFailure
+            ).catch(err => {
+                alert("Error al acceder a la cámara nativa.");
+                detenerCamaraSiEstaActiva();
+            });
+        }
+    }
+
+    function detenerCamaraSiEstaActiva() {
+        const contenedor = document.getElementById("contenedor-lector");
+        const txtBoton = document.getElementById("txt-boton-camara");
+        if(contenedor) contenedor.style.display = "none";
+        if(txtBoton) txtBoton.innerText = "Escanear QR de Amigo";
+
+        if (html5QrcodeScanner) {
+            html5QrcodeScanner.stop().then(() => {
+                html5QrcodeScanner.clear();
+                html5QrcodeScanner = null;
+            }).catch(err => console.log("Cámara cerrada."));
+        }
+    }
+
+    /* SISTEMA DE DECODIFICACIÓN QR (Ajustado a Base 36) */
+    function onScanSuccess(decodedText, decodedResult) {
+        if(!decodedText.startsWith("SC26:")) {
+            alert("El código escaneado no es un álbum válido de SwapCards.");
+            detenerCamaraSiEstaActiva();
+            return;
+        }
+
+        detenerCamaraSiEstaActiva();
+        
+        const streamRemoto = decodedText.substring(5);
+        let teSirvenAMi = [];
+        let leSirvenAEl = [];
+
+        mapaLlavesOrdenadas.forEach((id, index) => {
+            const miCantidad = inventario[id];
+            // Decodifica cada carácter de forma unívoca en Base 36
+            const cantidadRemota = parseInt(streamRemoto[index] || "0", 36);
+
+            if(miCantidad === 0 && cantidadRemota > 1) {
+                teSirvenAMi.push(id);
+            }
+            if(cantidadRemota === 0 && miCantidad > 1) {
+                leSirvenAEl.push(id);
+            }
+        });
+
+        procesarYMostrarResultadoMatch(teSirvenAMi, leSirvenAEl);
+    }
+
+    function onScanFailure(error) { }
+
+    function procesarYMostrarResultadoMatch(paraMi, paraEl) {
+        const tarjeta = document.getElementById("tarjeta-match-resultado");
+        const cuerpo = document.getElementById("cuerpo-match-resultado");
+        tarjeta.style.display = "block";
+
+        if(paraMi.length === 0 && paraEl.length === 0) {
+            cuerpo.innerHTML = "<strong>No hay coincidencias inmediatas.</strong><br>Ninguno tiene repetidas que al otro le falten actualmente.";
+            return;
+        }
+
+        let renderHtml = "";
+        if(paraMi.length > 0) {
+            renderHtml += `<p style='margin:0 0 8px 0;'>🎁 <strong>Te sirven de él (${paraMi.length}):</strong><br><span style='color:#166534; font-weight:600;'>${paraMi.join(', ')}</span></p>`;
+        } else {
+            renderHtml += `<p style='margin:0 0 8px 0; color:var(--texto-secundario);'>No tiene repetidas que te falten.</p>`;
+        }
+
+        if(paraEl.length > 0) {
+            renderHtml += `<p style='margin:12px 0 0 0;'>🤝 <strong>Tú le puedes dar (${paraEl.length}):</strong><br><span style='color:#1e3a8a; font-weight:600;'>${paraEl.join(', ')}</span></p>`;
+        } else {
+            renderHtml += `<p style='margin:12px 0 0 0; color:var(--texto-secundario);'>No tienes repetidas que le falten.</p>`;
+        }
+
+        cuerpo.innerHTML = renderHtml;
+    }
+
+    /* FILTROS Y OTROS SOPORTES VISUALES */
+    function controlarEscrituraBuscador() {
+        const input = document.getElementById("input-buscar");
+        const btnLimpiar = document.getElementById("btn-limpiar");
+        if (input.value.length > 0) btnLimpiar.style.display = "block";
+        else btnLimpiar.style.display = "none";
+        ejecutarFiltrosCombinados();
+    }
+
+    function limpiarBuscador() {
+        const input = document.getElementById("input-buscar");
+        input.value = "";
+        controlarEscrituraBuscador();
+        input.focus();
+    }
+
+    function abrirModalAjuste(id) {
+        idSeleccionadoModal = id;
+        document.getElementById("modal-titulo").innerText = id;
+        document.getElementById("modal-input-cant").value = inventario[id];
+        document.getElementById("modal-ajuste").classList.add("activo");
+    }
+
+    function cambiarCantidadModal(cambio) {
+        const input = document.getElementById("modal-input-cant");
+        let valor = parseInt(input.value) + cambio;
+        if (valor < 0) valor = 0;
+        input.value = valor;
+    }
+
+    function guardarCambiosModal() {
+        const nuevoValor = parseInt(document.getElementById("modal-input-cant").value);
+        inventario[idSeleccionadoModal] = nuevoValor;
+        actualizarInterfazCasilla(idSeleccionadoModal);
+        actualizarMétricasGlobales();
+        ejecutarFiltrosCombinados();
+        document.getElementById("modal-ajuste").classList.remove("activo");
+    }
+
+    document.getElementById("modal-ajuste").addEventListener("click", function(e) { if(e.target === this) this.classList.remove("activo"); });
+
+    function cambiarFiltroTab(tipoFiltro, boton) {
+        filtroTabActual = tipoFiltro;
+        document.querySelectorAll(".btn-filtro").forEach(btn => btn.classList.remove("activo"));
+        boton.classList.add("activo");
+        ejecutarFiltrosCombinados();
+    }
+
+    function ejecutarFiltrosCombinados() {
+        const queryBusqueda = document.getElementById("input-buscar").value.toLowerCase().trim();
+        const partes = queryBusqueda.split(/\s+/);
+        const filtroTexto = partes[0] || "";
+        const filtroNumero = partes[1] || "";
+        const secciones = document.querySelectorAll(".seccion-album");
+
+        secciones.forEach(seccion => {
+            const nombreSeccion = seccion.getAttribute("data-nombre").toLowerCase();
+            const inicialSeccion = seccion.getAttribute("data-inicial").toLowerCase();
+            const barajitas = seccion.querySelectorAll(".barajita");
+            let visibles = 0;
+
+            barajitas.forEach(barajita => {
+                const idCompleto = barajita.id.toLowerCase();
+                const numeroCasilla = barajita.getAttribute("data-numero").toLowerCase();
+                const cantidad = inventario[barajita.id];
+                let cumpleTab = (filtroTabActual === 'todo') || (filtroTabActual === 'faltantes' && cantidad === 0) || (filtroTabActual === 'repetidas' && cantidad > 1);
+                let cumpleBusqueda = (queryBusqueda === "") || (filtroNumero !== "" ? (nombreSeccion.includes(filtroTexto) || inicialSeccion.includes(filtroTexto)) && (numeroCasilla === filtroNumero) : nombreSeccion.includes(queryBusqueda) || inicialSeccion.includes(queryBusqueda) || idCompleto.includes(queryBusqueda) || (numeroCasilla === queryBusqueda));
+
+                if (cumpleTab && cumpleBusqueda) { barajita.classList.remove("ocultar-elemento"); visibles++; }
+                else { barajita.classList.add("ocultar-elemento"); }
+            });
+            if (visibles > 0) seccion.classList.remove("ocultar-elemento");
+            else seccion.classList.add("ocultar-elemento");
+        });
+    }
+
+    function compartirLista() {
+        let unicasPoseídas = 0;
+        let totalRepetidas = 0;
+        Object.keys(inventario).forEach(id => { if (inventario[id] >= 1) unicasPoseídas++; if (inventario[id] > 1) totalRepetidas += (inventario[id] - 1); });
+        let faltantes = totalCasillasAlbum - unicasPoseídas;
+
+        let texto = `🔴 *LO QUE ME FALTA: ${faltantes}*\n`;
+        Object.keys(estructuraAlbum).forEach(idSec => {
+            const info = estructuraAlbum[idSec];
+            let listaFaltantesSeccion = [];
+            info.rango.forEach(num => { if(inventario[`${info.prefijo}-${num}`] === 0) listaFaltantesSeccion.push(num); });
+            if(listaFaltantesSeccion.length === info.rango.length) texto += `• ${info.nombre}: *Todas (1-${info.rango.length})*\n`;
+            else if(listaFaltantesSeccion.length > 0) texto += `• ${info.nombre}: ${listaFaltantesSeccion.join(', ')}\n`;
+        });
+
+        texto += `\n🟢 *MIS REPETIDAS (PARA CAMBIO): ${totalRepetidas}*\n`;
+        let tieneRepetidas = false;
+        Object.keys(estructuraAlbum).forEach(idSec => {
+            const info = estructuraAlbum[idSec];
+            let listaRepetidasSeccion = [];
+            info.rango.forEach(num => {
+                const cant = inventario[`${info.prefijo}-${num}`];
+                if(cant > 1) {
+                    tieneRepetidas = true;
+                    if ((cant - 1) === 1) listaRepetidasSeccion.push(num);
+                    else listaRepetidasSeccion.push(`${num} (x${cant - 1})`);
+                }
+            });
+            if(listaRepetidasSeccion.length > 0) text += `• ${info.nombre}: ${listaRepetidasSeccion.join(', ')}\n`;
+        });
+        if(!tieneRepetidas) texto += `• Ninguna repetida por ahora.\n`;
+        texto += `\n📲 _¡Intercambia conmigo usando SwapCards!_`;
+
+        if (navigator.share) navigator.share({ title: 'Mi Lista', text: texto }).catch(console.error);
+        else { navigator.clipboard.writeText(texto); alert("¡Lista copiada al portapapeles!"); }
+    }
+
+    window.onload = inicializarAlbum;
+</script>
+</body>
+</html>
