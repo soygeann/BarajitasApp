@@ -633,30 +633,67 @@
         SwapQREngine.renderizar(vectorData, canvas);
     }
 
+    // Coloca esta variable justo antes de tus funciones para rastrear el escáner real
+let miLectorHtml5Qrcode = null;
+
     function abrirEscanerModal() {
         document.getElementById("modal-escaner").classList.add("activo");
-        const videoElement = document.getElementById("video-lector");
         
-        SwapQREngine.iniciarCamaraScanner(videoElement, (decodedText) => {
-            // VALIDACIÓN CRÍTICA: Si lo que lee no es nuestro formato, ignorarlo por completo
-            // Esto evita que destellos o lecturas falsas disparen el cruce con datos corruptos
-            if (!decodedText || typeof decodedText !== 'string' || !decodedText.startsWith("SC26:")) {
-                console.log("Lectura ignorada (no es un QR de SwapCards válido):", decodedText);
-                return; // No hace nada, la cámara se queda encendida esperando el QR real
+        // 1. Si ya había una instancia corriendo, la limpiamos primero
+        if (miLectorHtml5Qrcode) {
+            miLectorHtml5Qrcode.clear();
+        }
+        
+        // 2. Creamos la instancia apuntando al contenedor div del video/lector
+        miLectorHtml5Qrcode = new Html5Qrcode("video-lector");
+        
+        // 3. Encendemos la cámara trasera de forma nativa y estricta
+        miLectorHtml5Qrcode.start(
+            { facingMode: "environment" }, // Forzar cámara trasera
+            {
+                fps: 10,                  // Velocidad de lectura razonable
+                qrbox: { width: 250, height: 250 } // Cuadro visual de enfoque
+            },
+            (decodedText) => {
+                // ¡VALIDACIÓN INQUEBRANTABLE!
+                // Si lo que leyó NO empieza con nuestra cabecera, lo ignoramos por completo
+                if (!decodedText || typeof decodedText !== 'string' || !decodedText.startsWith("SC26:")) {
+                    console.log("Ignorando lectura inválida o destello:", decodedText);
+                    return; // La cámara sigue encendida y NO avanza a la pantalla de intercambio
+                }
+                
+                // Si pasa el filtro, significa que SÍ es un QR válido de SwapCards
+                console.log("¡QR Válido Detectado!", decodedText);
+                
+                // Apagamos la cámara de forma segura antes de cambiar de pantalla
+                cerrarEscanerModal();
+                
+                // Procesamos los datos reales del amigo
+                const datosRemotos = decodedText.substring(5);
+                procesarStreamSincronizacion(datosRemotos);
+            },
+            (errorMessage) => {
+                // Errores comunes de escaneo continuo (no pasa nada, se ignoran en silencio)
             }
-            
-            // Si llegó aquí, es un QR real de la app. Ahora sí cerramos y procesamos:
-            cerrarEscanerModal();
-            
-            // Extraemos solo los números después de "SC26:"
-            const datosRemotos = decodedText.substring(5);
-            procesarStreamSincronizacion(datosRemotos);
+        ).catch(err => {
+            console.error("Error al iniciar la cámara nativa:", err);
+            alert("No se pudo acceder a la cámara. Asegúrate de dar los permisos.");
+            document.getElementById("modal-escaner").classList.remove("activo");
         });
     }
 
     function cerrarEscanerModal() {
         document.getElementById("modal-escaner").classList.remove("activo");
-        SwapQREngine.detenerCamaraScanner();
+        
+        if (miLectorHtml5Qrcode) {
+            miLectorHtml5Qrcode.stop().then(() => {
+                miLectorHtml5Qrcode.clear();
+                miLectorHtml5Qrcode = null;
+            }).catch(err => {
+                console.error("Error al detener la cámara:", err);
+                miLectorHtml5Qrcode = null;
+            });
+        }
     }
 
     function procesarStreamSincronizacion(streamRemoto) {
