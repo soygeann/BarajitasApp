@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwapCards - Prototipo Élite</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
-    <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
             --bg-principal: #f8fafc;
@@ -63,7 +61,6 @@
         .btn-compartir:hover { background-color: #e2e8f0; }
         .btn-compartir svg { width: 20px; height: 20px; fill: var(--texto-principal); }
 
-        /* ESTILOS DEL MINI MENÚ DESPLEGABLE */
         .contenedor-menu-opciones {
             display: flex;
             gap: 8px;
@@ -84,6 +81,7 @@
             animation: fadeIn 0.2s ease-out;
         }
         .menu-desplegable.activo { display: block; }
+        
         .opcion-menu {
             padding: 12px 16px;
             font-size: 14px;
@@ -99,7 +97,6 @@
         }
         .opcion-menu:hover { background-color: #f1f5f9; }
 
-        /* TARJETA DE PROGRESO RESUMIDA */
         .tarjeta-progreso {
             background-color: #f1f5f9; border: 1px solid var(--borde);
             border-radius: 20px; padding: 16px 20px; margin-bottom: 20px;
@@ -110,7 +107,6 @@
         .punto-rojo { width: 10px; height: 10px; background-color: var(--peligro); border-radius: 50%; }
         .punto-verde { width: 10px; height: 10px; background-color: var(--exito); border-radius: 50%; }
 
-        /* BUSCADOR CON BOTÓN LIMPIAR */
         .contenedor-busqueda { margin-bottom: 12px; position: relative; display: flex; align-items: center; }
         .input-busqueda {
             width: 100%; box-sizing: border-box; padding: 12px 40px 12px 16px; border-radius: 14px;
@@ -129,7 +125,6 @@
         .btn-filtro { flex: 1; background: none; border: none; padding: 10px; font-size: 14px; font-weight: 600; color: var(--texto-secundario); border-radius: 10px; cursor: pointer; transition: all 0.2s ease; }
         .btn-filtro.activo { background-color: var(--primario); color: white; box-shadow: 0 4px 10px rgba(14, 165, 233, 0.2); }
 
-        /* SECCIONES CONTENEDORAS DINÁMICAS */
         #contenedor-album-dinamico { display: flex; flex-direction: column; gap: 16px; }
         .seccion-album { background-color: #ffffff; border: 1px solid var(--borde); border-radius: 16px; overflow: hidden; }
         .titulo-seccion { font-size: 15px; font-weight: 700; padding: 14px 16px; background-color: #f8fafc; display: flex; justify-content: space-between; align-items: center; cursor: pointer; user-select: none; }
@@ -140,7 +135,6 @@
         .grid-barajitas { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; padding: 16px; }
         .seccion-album.cerrado .grid-barajitas { display: none; }
 
-        /* ESTILO BARAJITAS */
         .barajita {
             aspect-ratio: 1; border-radius: 50%; border: 2px solid var(--desactivado); background-color: #f1f5f9;
             color: var(--texto-secundario); display: flex; align-items: center; justify-content: center;
@@ -161,7 +155,6 @@
 
         .ocultar-elemento { display: none !important; }
 
-        /* DISEÑO DE LA VISTA QR MEJORADA */
         .qr-card-container { display: flex; flex-direction: column; align-items: center; padding: 10px 0; }
         .qr-wrapper { 
             background: white; padding: 20px; border-radius: 28px; border: 1px solid var(--borde); 
@@ -169,8 +162,7 @@
             display: flex; justify-content: center; align-items: center;
         }
         
-        /* Contenedor SVG QR adaptativo */
-        #contenedor-qr-svg { width: 220px; height: 220px; display: block; }
+        #contenedor-qr-canvas { width: 220px; height: 220px; display: block; border-radius: 12px; }
 
         .btn-accion-principal {
             width: 100%; max-width: 320px; background-color: var(--primario); color: white; border: none;
@@ -180,7 +172,6 @@
         .btn-accion-principal:active { transform: scale(0.98); }
         .btn-accion-principal svg { width: 20px; height: 20px; fill: white; }
 
-        /* POPUP MODAL EXCLUSIVO PARA EL ESCÁNER DE CÁMARA */
         .modal-escaner-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
@@ -203,9 +194,8 @@
             width: 32px; height: 32px; border-radius: 50%; cursor: pointer;
             display: flex; align-items: center; justify-content: center; color: var(--texto-principal);
         }
-        #contenedor-lector { width: 100%; aspect-ratio: 1; background: #000; }
+        #video-lector { width: 100%; aspect-ratio: 1; object-fit: cover; background: #000; display: block; }
 
-        /* NUEVA PESTAÑA / INTERFAZ DE SELECCIÓN DE INTERCAMBIO (ESTILO SCREENSHOT) */
         .interfaz-intercambio {
             width: 100%; background: #ffffff; border-radius: 20px; display: none;
             flex-direction: column; animation: fadeIn 0.3s ease-out;
@@ -222,7 +212,6 @@
         .header-bloque .btn-todas { background: none; border: none; color: var(--primario); font-size: 14px; font-weight: 600; cursor: pointer; }
         .subtexto-bloque { font-size: 13px; color: var(--texto-secundario); margin: -8px 0 12px 0; }
         
-        /* Lista Horizontal de Figuras Redondas del flujo */
         .lista-figuras-intercambio {
             display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0;
         }
@@ -234,7 +223,6 @@
         }
         .figura-voto span { font-size: 10px; font-weight: 500; color: var(--texto-secundario); }
         
-        /* Estados Activos (Seleccionados en Azul según tu screenshot) */
         .figura-voto.seleccionada {
             background-color: #2563eb; border-color: #2563eb; color: #ffffff;
         }
@@ -252,7 +240,6 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* BARRA DE NAVEGACIÓN INFERIOR (BOTTOM NAV) */
         .bottom-nav {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
             width: 100%; max-width: 450px; background-color: rgba(255, 255, 255, 0.92);
@@ -266,7 +253,6 @@
         .nav-item svg { width: 22px; height: 22px; fill: currentColor; }
         .nav-item span { font-size: 11px; font-weight: 700; }
 
-        /* POPUP MODAL GENERAL COPIAS */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center; justify-content: center; z-index: 1000; opacity: 0; pointer-events: none; transition: opacity 0.2s ease; }
         .modal-overlay.activo { opacity: 1; pointer-events: auto; }
         .modal-box { background: white; padding: 24px; border-radius: 20px; width: 280px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); transform: scale(0.9); transition: transform 0.2s ease; }
@@ -304,7 +290,7 @@
                         <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                         <span id="txt-menu-status">Desactivar Estado</span>
                     </div>
-                    </div>
+                </div>
             </div>
         </div>
 
@@ -339,7 +325,7 @@
         
         <div class="qr-card-container" id="bloque-qr-generado">
             <div class="qr-wrapper" id="cuadro-qr">
-                <div id="contenedor-qr-svg"></div>
+                <canvas id="contenedor-qr-canvas"></canvas>
             </div>
             
             <button class="btn-accion-principal" onclick="abrirEscanerModal()">
@@ -390,10 +376,10 @@
 <div class="modal-escaner-overlay" id="modal-escaner">
     <div class="ventana-escaner">
         <div class="header-escaner">
-            <h3>Escanear Código de Barras / QR</h3>
+            <h3>Escanear Código SwapCards</h3>
             <button class="btn-cerrar-escaner" onclick="cerrarEscanerModal()">✕</button>
         </div>
-        <div id="contenedor-lector"></div>
+        <video id="video-lector" playsinline></video>
     </div>
 </div>
 
@@ -410,6 +396,7 @@
     </div>
 </div>
 
+<script src="qr-engine.js"></script>
 <script>
     const estructuraAlbum = {
         "fwc-trofeo": { prefijo: "FWC", nombre: "FWC 🏆", rango: ["00", "1", "2", "3", "4"], especiales: ["00", "1", "2", "3", "4"] },
@@ -470,14 +457,12 @@
     let totalCasillasAlbum = 0;
     let filtroTabActual = 'todo';
     let idSeleccionadoModal = null;
-    let html5QrcodeScanner = null;
 
     let listaIntercambioRecibir = [];
     let listaIntercambioEntregar = [];
 
     function toggleSeccion(idSeccion) { document.getElementById(idSeccion).classList.toggle("cerrado"); }
 
-    /* ACCIONES DEL MINI MENÚ SUPERIOR */
     function toggleMiniMenu(event) {
         event.stopPropagation();
         document.getElementById("mini-menu").classList.toggle("activo");
@@ -497,7 +482,6 @@
         document.getElementById("mini-menu").classList.remove("activo");
     }
 
-    // Cerrar el menú si se hace clic en cualquier otra parte de la pantalla
     document.addEventListener("click", function() {
         document.getElementById("mini-menu").classList.remove("activo");
     });
@@ -520,7 +504,7 @@
 
     function inicializarAlbum() {
         const contenedorPadre = document.getElementById("contenedor-album-dinamico");
-        contenedorPadre.innerHTML = ""; // Limpieza por seguridad
+        contenedorPadre.innerHTML = "";
 
         Object.keys(estructuraAlbum).forEach(idContenedor => {
             const info = estructuraAlbum[idContenedor];
@@ -645,70 +629,31 @@
             vectorData += inventario[id] > 9 ? "9" : inventario[id]; 
         });
 
-        const qr = qrcode(0, 'M');
-        qr.addData(vectorData);
-        qr.make();
-        
-        let svgRaw = qr.createSvgTag(5, 0);
-        
-        const logoSvgElement = `
-            <g transform="translate(100, 100) scale(0.9)">
-                <circle cx="25" cy="25" r="24" fill="url(#gradienteSwap)" stroke="#ffffff" stroke-width="2.5" />
-                <path d="M18 13h10c3.5 0 6 2 6 5.5v.1c0 2.4-1.6 4.4-4 5.1 2.8.6 4.5 2.8 4.5 5.5v.1c0 3.8-2.7 5.7-6.5 5.7H18V13zm6.5 8.5h3c1.4 0 2.3-.7 2.3-1.8v-.1c0-1.1-.9-1.8-2.3-1.8h-3v3.7zm0 10.2h3.5c1.5 0 2.5-.8 2.5-2v-.1c0-1.2-1-2-2.5-2h-3.5v4.1z" fill="#ffffff"/>
-            </g>
-            <defs>
-                <linearGradient id="gradienteSwap" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#0ea5e9" />
-                    <stop offset="100%" stop-color="#2563eb" />
-                </linearGradient>
-            </defs>
-        `;
-        
-        svgRaw = svgRaw.replace('</svg>', `${logoSvgElement}</svg>`);
-        
-        const contenedor = document.getElementById("contenedor-qr-svg");
-        contenedor.innerHTML = svgRaw;
-        
-        const svgElement = contenedor.querySelector("svg");
-        svgElement.setAttribute("width", "100%");
-        svgElement.setAttribute("height", "100%");
+        const canvas = document.getElementById("contenedor-qr-canvas");
+        SwapQREngine.renderizar(vectorData, canvas);
     }
 
     function abrirEscanerModal() {
         document.getElementById("modal-escaner").classList.add("activo");
+        const videoElement = document.getElementById("video-lector");
         
-        html5QrcodeScanner = new Html5Qrcode("contenedor-lector");
-        html5QrcodeScanner.start(
-            { facingMode: "environment" }, 
-            { fps: 12, qrbox: { width: 250, height: 250 } },
-            onScanSuccess,
-            onScanFailure
-        ).catch(err => {
-            alert("Error al acceder a la cámara.");
+        SwapQREngine.iniciarCamaraScanner(videoElement, (decodedText) => {
+            if(!decodedText.startsWith("SC26:")) {
+                alert("El código escaneado no es válido de SwapCards.");
+                cerrarEscanerModal();
+                return;
+            }
             cerrarEscanerModal();
+            procesarStreamSincronizacion(decodedText.substring(5));
         });
     }
 
     function cerrarEscanerModal() {
         document.getElementById("modal-escaner").classList.remove("activo");
-        if (html5QrcodeScanner) {
-            html5QrcodeScanner.stop().then(() => {
-                html5QrcodeScanner.clear();
-                html5QrcodeScanner = null;
-            }).catch(err => console.log("Cámara cerrada."));
-        }
+        SwapQREngine.detenerCamaraScanner();
     }
 
-    function onScanSuccess(decodedText, decodedResult) {
-        if(!decodedText.startsWith("SC26:")) {
-            alert("El código escaneado no es válido de SwapCards.");
-            cerrarEscanerModal();
-            return;
-        }
-
-        cerrarEscanerModal();
-        
-        const streamRemoto = decodedText.substring(5);
+    function procesarStreamSincronizacion(streamRemoto) {
         let paraMiFaltantes = [];
         let paraElRepetidas = [];
 
@@ -726,8 +671,6 @@
 
         desplegarInterfazDeSeleccion(paraMiFaltantes, paraElRepetidas);
     }
-
-    function onScanFailure(error) { }
 
     function desplegarInterfazDeSeleccion(paraMi, paraEl) {
         document.getElementById("bloque-qr-generado").style.display = "none";
@@ -940,7 +883,6 @@
         });
         
         let faltantes = totalCasillasAlbum - unicasPoseídas;
-
         let texto = `🔴 *LO QUE ME FALTA: ${faltantes}*\n`;
         
         Object.keys(estructuraAlbum).forEach(idSec => {
