@@ -379,7 +379,7 @@
             <h3>Escanear Código SwapCards</h3>
             <button class="btn-cerrar-escaner" onclick="cerrarEscanerModal()">✕</button>
         </div>
-        <video id="video-lector" playsinline></video>
+        <div id="video-lector" style="width: 100%; aspect-ratio: 1; background: #000;"></div>
     </div>
 </div>
 
@@ -636,73 +636,67 @@
     // Coloca esta variable justo antes de tus funciones para rastrear el escáner real
 let miLectorHtml5Qrcode = null;
 
-    function abrirEscanerModal() {
-        document.getElementById("modal-escaner").classList.add("activo");
-        
-        // 1. Si ya había una instancia corriendo, la limpiamos primero
-        if (miLectorHtml5Qrcode) {
-            miLectorHtml5Qrcode.clear();
-        }
-        
-        // 2. Creamos la instancia apuntando al contenedor div del video/lector
-        miLectorHtml5Qrcode = new Html5Qrcode("video-lector");
-        
-        // 3. Encendemos la cámara trasera de forma nativa y estricta
-        miLectorHtml5Qrcode.start(
-            { facingMode: "environment" }, // Forzar cámara trasera
-            {
-                fps: 10,                  // Velocidad de lectura razonable
-                qrbox: { width: 250, height: 250 } // Cuadro visual de enfoque
-            },
-            (decodedText) => {
-                // ¡VALIDACIÓN INQUEBRANTABLE!
-                // Si lo que leyó NO empieza con nuestra cabecera, lo ignoramos por completo
-                if (!decodedText || typeof decodedText !== 'string' || !decodedText.startsWith("SC26:")) {
-                    console.log("Ignorando lectura inválida o destello:", decodedText);
-                    return; // La cámara sigue encendida y NO avanza a la pantalla de intercambio
-                }
-                
-                // Si pasa el filtro, significa que SÍ es un QR válido de SwapCards
-                console.log("¡QR Válido Detectado!", decodedText);
-                
-                // Apagamos la cámara de forma segura antes de cambiar de pantalla
-                cerrarEscanerModal();
-                
-                // Procesamos los datos reales del amigo
-                const datosRemotos = decodedText.substring(5);
-                procesarStreamSincronizacion(datosRemotos);
-            },
-            (errorMessage) => {
-                // Errores comunes de escaneo continuo (no pasa nada, se ignoran en silencio)
+function abrirEscanerModal() {
+    document.getElementById("modal-escaner").classList.add("activo");
+    
+    // Si ya existía una instancia por un error previo, la destruimos para liberar la cámara
+    if (miLectorHtml5Qrcode) {
+        try { miLectorHtml5Qrcode.clear(); } catch(e){}
+    }
+    
+    // Ahora "video-lector" es el div contenedor correcto
+    miLectorHtml5Qrcode = new Html5Qrcode("video-lector");
+    
+    miLectorHtml5Qrcode.start(
+        { facingMode: "environment" }, // Fuerza el uso de la cámara trasera
+        {
+            fps: 10,
+            qrbox: { width: 250, height: 250 }
+        },
+        (decodedText) => {
+            // Filtrado estricto
+            if (!decodedText || typeof decodedText !== 'string' || !decodedText.startsWith("SC26:")) {
+                console.log("Ignorando lectura falsa o incorrecta:", decodedText);
+                return; 
             }
-        ).catch(err => {
-            console.error("Error al iniciar la cámara nativa:", err);
-            alert("No se pudo acceder a la cámara. Asegúrate de dar los permisos.");
-            document.getElementById("modal-escaner").classList.remove("activo");
+            
+            console.log("¡QR Válido Detectado!", decodedText);
+            cerrarEscanerModal();
+            
+            const datosRemotos = decodedText.substring(5);
+            procesarStreamSincronizacion(datosRemotos);
+        },
+        (errorMessage) => {
+            // Errores continuos de escaneo en vacío (se ignoran con normalidad)
+        }
+    ).catch(err => {
+        console.error("Error al iniciar la cámara:", err);
+        alert("No se pudo acceder a la cámara. Revisa los permisos de tu navegador.");
+        document.getElementById("modal-escaner").classList.remove("activo");
+    });
+}
+
+function cerrarEscanerModal() {
+    document.getElementById("modal-escaner").classList.remove("activo");
+    
+    if (miLectorHtml5Qrcode) {
+        miLectorHtml5Qrcode.stop().then(() => {
+            miLectorHtml5Qrcode.clear();
+            miLectorHtml5Qrcode = null;
+        }).catch(err => {
+            console.error("Error al detener cámara:", err);
+            miLectorHtml5Qrcode = null;
         });
     }
+}
 
-    function cerrarEscanerModal() {
-        document.getElementById("modal-escaner").classList.remove("activo");
-        
-        if (miLectorHtml5Qrcode) {
-            miLectorHtml5Qrcode.stop().then(() => {
-                miLectorHtml5Qrcode.clear();
-                miLectorHtml5Qrcode = null;
-            }).catch(err => {
-                console.error("Error al detener la cámara:", err);
-                miLectorHtml5Qrcode = null;
-            });
-        }
-    }
+function procesarStreamSincronizacion(streamRemoto) {
+    let paraMiFaltantes = [];
+    let paraElRepetidas = [];
 
-    function procesarStreamSincronizacion(streamRemoto) {
-        let paraMiFaltantes = [];
-        let paraElRepetidas = [];
-
-        mapaLlavesOrdenadas.forEach((id, index) => {
-            const miCantidad = inventario[id];
-            const cantidadRemota = parseInt(streamRemoto[index] || "0", 10);
+    mapaLlavesOrdenadas.forEach((id, index) => {
+        const miCantidad = inventario[id];
+        const cantidadRemota = parseInt(streamRemoto[index] || "0", 10);
 
             // RECIBIR: Yo tengo 0 Y mi amigo tiene más de 1 (tiene repetidas reales)
             if (miCantidad === 0 && cantidadRemota > 1) {
