@@ -638,13 +638,19 @@
         const videoElement = document.getElementById("video-lector");
         
         SwapQREngine.iniciarCamaraScanner(videoElement, (decodedText) => {
-            if(!decodedText.startsWith("SC26:")) {
-                alert("El código escaneado no es válido de SwapCards.");
-                cerrarEscanerModal();
-                return;
+            // VALIDACIÓN CRÍTICA: Si lo que lee no es nuestro formato, ignorarlo por completo
+            // Esto evita que destellos o lecturas falsas disparen el cruce con datos corruptos
+            if (!decodedText || typeof decodedText !== 'string' || !decodedText.startsWith("SC26:")) {
+                console.log("Lectura ignorada (no es un QR de SwapCards válido):", decodedText);
+                return; // No hace nada, la cámara se queda encendida esperando el QR real
             }
+            
+            // Si llegó aquí, es un QR real de la app. Ahora sí cerramos y procesamos:
             cerrarEscanerModal();
-            procesarStreamSincronizacion(decodedText.substring(5));
+            
+            // Extraemos solo los números después de "SC26:"
+            const datosRemotos = decodedText.substring(5);
+            procesarStreamSincronizacion(datosRemotos);
         });
     }
 
