@@ -659,12 +659,14 @@
 
         mapaLlavesOrdenadas.forEach((id, index) => {
             const miCantidad = inventario[id];
-            const cantidadRemota = parseInt(streamRemoto[index] || "0");
+            const cantidadRemota = parseInt(streamRemoto[index] || "0", 10);
 
-            if(miCantidad === 0 && cantidadRemota > 1) {
+            // RECIBIR: Yo tengo 0 Y mi amigo tiene más de 1 (tiene repetidas reales)
+            if (miCantidad === 0 && cantidadRemota > 1) {
                 paraMiFaltantes.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
-            if(cantidadRemota === 0 && miCantidad > 1) {
+            // ENTREGAR: Yo tengo más de 1 (tengo repetidas reales) Y mi amigo tiene 0
+            if (miCantidad > 1 && cantidadRemota === 0) {
                 paraElRepetidas.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
         });
@@ -687,6 +689,10 @@
         
         listaIntercambioRecibir = [];
         listaIntercambioEntregar = [];
+
+        // Encabezados dinámicos con el total disponible del cruce
+        document.getElementById("titulo-recibir-cant").innerText = `Recibir (${paraMi.length} disponibles)`;
+        document.getElementById("titulo-entregar-cant").innerText = `Entregar (${paraEl.length} disponibles)`;
 
         if(paraMi.length === 0) {
             contenedorRecibir.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>Tu amigo no posee repetidas que te falten.</p>";
@@ -761,9 +767,6 @@
     }
 
     function actualizarContadoresBotonMatch() {
-        document.getElementById("titulo-recibir-cant").innerText = `Recibir ${listaIntercambioRecibir.length}`;
-        document.getElementById("titulo-entregar-cant").innerText = `Entregar ${listaIntercambioEntregar.length}`;
-        
         const btn = document.getElementById("btn-ejecutar-match");
         btn.innerText = `Confirmar cambio (${listaIntercambioRecibir.length} por ${listaIntercambioEntregar.length})`;
     }
