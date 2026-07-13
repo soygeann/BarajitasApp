@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SwapCards - Prototipo Élite</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrious/4.0.2/qrious.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     <style>
         :root {
@@ -63,7 +63,7 @@
         .btn-compartir:hover { background-color: #e2e8f0; }
         .btn-compartir svg { width: 20px; height: 20px; fill: var(--texto-principal); }
 
-        /* MINI MENÚ DESPLEGABLE */
+        /* ESTILOS DEL MINI MENÚ DESPLEGABLE */
         .contenedor-menu-opciones {
             display: flex;
             gap: 8px;
@@ -165,10 +165,12 @@
         .qr-card-container { display: flex; flex-direction: column; align-items: center; padding: 10px 0; }
         .qr-wrapper { 
             background: white; padding: 20px; border-radius: 28px; border: 1px solid var(--borde); 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 24px; display: flex; justify-content: center; align-items: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04); margin-bottom: 24px; position: relative;
+            display: flex; justify-content: center; align-items: center;
         }
         
-        #canvas-qr { width: 220px !important; height: 220px !important; display: block; }
+        /* Contenedor SVG QR adaptativo */
+        #contenedor-qr-svg { width: 220px; height: 220px; display: block; }
 
         .btn-accion-principal {
             width: 100%; max-width: 320px; background-color: var(--primario); color: white; border: none;
@@ -178,7 +180,7 @@
         .btn-accion-principal:active { transform: scale(0.98); }
         .btn-accion-principal svg { width: 20px; height: 20px; fill: white; }
 
-        /* POPUP MODAL PARA EL ESCÁNER DE CÁMARA */
+        /* POPUP MODAL EXCLUSIVO PARA EL ESCÁNER DE CÁMARA */
         .modal-escaner-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(8px);
@@ -203,7 +205,7 @@
         }
         #contenedor-lector { width: 100%; aspect-ratio: 1; background: #000; }
 
-        /* INTERFAZ DE SELECCIÓN DE INTERCAMBIO */
+        /* NUEVA PESTAÑA / INTERFAZ DE SELECCIÓN DE INTERCAMBIO (ESTILO SCREENSHOT) */
         .interfaz-intercambio {
             width: 100%; background: #ffffff; border-radius: 20px; display: none;
             flex-direction: column; animation: fadeIn 0.3s ease-out;
@@ -220,6 +222,7 @@
         .header-bloque .btn-todas { background: none; border: none; color: var(--primario); font-size: 14px; font-weight: 600; cursor: pointer; }
         .subtexto-bloque { font-size: 13px; color: var(--texto-secundario); margin: -8px 0 12px 0; }
         
+        /* Lista Horizontal de Figuras Redondas del flujo */
         .lista-figuras-intercambio {
             display: flex; flex-wrap: wrap; gap: 10px; padding: 4px 0;
         }
@@ -231,6 +234,7 @@
         }
         .figura-voto span { font-size: 10px; font-weight: 500; color: var(--texto-secundario); }
         
+        /* Estados Activos (Seleccionados en Azul según tu screenshot) */
         .figura-voto.seleccionada {
             background-color: #2563eb; border-color: #2563eb; color: #ffffff;
         }
@@ -248,7 +252,7 @@
 
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-        /* BARRA DE NAVEGACIÓN INFERIOR */
+        /* BARRA DE NAVEGACIÓN INFERIOR (BOTTOM NAV) */
         .bottom-nav {
             position: fixed; bottom: 0; left: 50%; transform: translateX(-50%);
             width: 100%; max-width: 450px; background-color: rgba(255, 255, 255, 0.92);
@@ -300,7 +304,7 @@
                         <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                         <span id="txt-menu-status">Desactivar Estado</span>
                     </div>
-                </div>
+                    </div>
             </div>
         </div>
 
@@ -335,7 +339,7 @@
         
         <div class="qr-card-container" id="bloque-qr-generado">
             <div class="qr-wrapper" id="cuadro-qr">
-                <canvas id="canvas-qr"></canvas>
+                <div id="contenedor-qr-svg"></div>
             </div>
             
             <button class="btn-accion-principal" onclick="abrirEscanerModal()">
@@ -386,7 +390,7 @@
 <div class="modal-escaner-overlay" id="modal-escaner">
     <div class="ventana-escaner">
         <div class="header-escaner">
-            <h3>Escanear Código QR</h3>
+            <h3>Escanear Código de Barras / QR</h3>
             <button class="btn-cerrar-escaner" onclick="cerrarEscanerModal()">✕</button>
         </div>
         <div id="contenedor-lector"></div>
@@ -428,7 +432,7 @@
         "team-aus": { prefijo: "AUS", nombre: "AUS - Australia 🇦🇺", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
         "team-tur": { prefijo: "TUR", nombre: "TUR - Turquía 🇹🇷", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
         "team-ger": { prefijo: "GER", nombre: "GER - Alemania 🇩🇪", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
-        "team-cuw": { prefijo: "CUW", font-size: "12px", nombre: "CUW - Curazao 🇨🇼", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
+        "team-cuw": { prefijo: "CUW", nombre: "CUW - Curazao 🇨🇼", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
         "team-civ": { prefijo: "CIV", nombre: "CIV - Costa de Marfil 🇨🇮", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
         "team-ecu": { prefijo: "ECU", nombre: "ECU - Ecuador 🇪🇨", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
         "team-ned": { prefijo: "NED", nombre: "NED - Países Bajos 🇳🇱", rango: Array.from({length: 20}, (_, i) => i + 1), especiales: [1] },
@@ -467,13 +471,13 @@
     let filtroTabActual = 'todo';
     let idSeleccionadoModal = null;
     let html5QrcodeScanner = null;
-    let qrInstancia = null;
 
     let listaIntercambioRecibir = [];
     let listaIntercambioEntregar = [];
 
     function toggleSeccion(idSeccion) { document.getElementById(idSeccion).classList.toggle("cerrado"); }
 
+    /* ACCIONES DEL MINI MENÚ SUPERIOR */
     function toggleMiniMenu(event) {
         event.stopPropagation();
         document.getElementById("mini-menu").classList.toggle("activo");
@@ -493,6 +497,7 @@
         document.getElementById("mini-menu").classList.remove("activo");
     }
 
+    // Cerrar el menú si se hace clic en cualquier otra parte de la pantalla
     document.addEventListener("click", function() {
         document.getElementById("mini-menu").classList.remove("activo");
     });
@@ -515,7 +520,7 @@
 
     function inicializarAlbum() {
         const contenedorPadre = document.getElementById("contenedor-album-dinamico");
-        contenedorPadre.innerHTML = "";
+        contenedorPadre.innerHTML = ""; // Limpieza por seguridad
 
         Object.keys(estructuraAlbum).forEach(idContenedor => {
             const info = estructuraAlbum[idContenedor];
@@ -591,8 +596,6 @@
             contenedorPadre.appendChild(divSeccion);
         });
 
-        // Intentar recuperar los datos guardados en el dispositivo para que no se borren
-        cargarDatosDeLocalStorage();
         actualizarMétricasGlobales();
     }
 
@@ -602,12 +605,10 @@
         actualizarInterfazCasilla(id);
         actualizarMétricasGlobales();
         ejecutarFiltrosCombinados();
-        guardarDatosEnLocalStorage();
     }
 
     function actualizarInterfazCasilla(id) {
         const elemento = document.getElementById(id);
-        if (!elemento) return;
         const cantidad = inventario[id];
         elemento.classList.remove("tengo", "repetida");
         const badgeViejo = elemento.querySelector(".badge-repetida");
@@ -638,25 +639,39 @@
         document.getElementById("lbl-repetidas").innerText = `${totalRepetidas} repetidas`;
     }
 
-    // NUEVO: Generación de QR nítido usando QRious directo al Canvas
     function generarCodigoQRPropio() {
         let vectorData = "SC26:"; 
         mapaLlavesOrdenadas.forEach(id => {
             vectorData += inventario[id] > 9 ? "9" : inventario[id]; 
         });
 
-        if (!qrInstancia) {
-            qrInstancia = new QRious({
-                element: document.getElementById('canvas-qr'),
-                value: vectorData,
-                size: 300,
-                level: 'M',
-                background: '#ffffff',
-                foreground: '#1e293b'
-            });
-        } else {
-            qrInstancia.value = vectorData;
-        }
+        const qr = qrcode(0, 'M');
+        qr.addData(vectorData);
+        qr.make();
+        
+        let svgRaw = qr.createSvgTag(5, 0);
+        
+        const logoSvgElement = `
+            <g transform="translate(100, 100) scale(0.9)">
+                <circle cx="25" cy="25" r="24" fill="url(#gradienteSwap)" stroke="#ffffff" stroke-width="2.5" />
+                <path d="M18 13h10c3.5 0 6 2 6 5.5v.1c0 2.4-1.6 4.4-4 5.1 2.8.6 4.5 2.8 4.5 5.5v.1c0 3.8-2.7 5.7-6.5 5.7H18V13zm6.5 8.5h3c1.4 0 2.3-.7 2.3-1.8v-.1c0-1.1-.9-1.8-2.3-1.8h-3v3.7zm0 10.2h3.5c1.5 0 2.5-.8 2.5-2v-.1c0-1.2-1-2-2.5-2h-3.5v4.1z" fill="#ffffff"/>
+            </g>
+            <defs>
+                <linearGradient id="gradienteSwap" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stop-color="#0ea5e9" />
+                    <stop offset="100%" stop-color="#2563eb" />
+                </linearGradient>
+            </defs>
+        `;
+        
+        svgRaw = svgRaw.replace('</svg>', `${logoSvgElement}</svg>`);
+        
+        const contenedor = document.getElementById("contenedor-qr-svg");
+        contenedor.innerHTML = svgRaw;
+        
+        const svgElement = contenedor.querySelector("svg");
+        svgElement.setAttribute("width", "100%");
+        svgElement.setAttribute("height", "100%");
     }
 
     function abrirEscanerModal() {
@@ -665,11 +680,11 @@
         html5QrcodeScanner = new Html5Qrcode("contenedor-lector");
         html5QrcodeScanner.start(
             { facingMode: "environment" }, 
-            { fps: 15, qrbox: { width: 260, height: 260 } },
+            { fps: 12, qrbox: { width: 250, height: 250 } },
             onScanSuccess,
             onScanFailure
         ).catch(err => {
-            alert("Error al abrir la cámara. Asegúrate de dar permisos.");
+            alert("Error al acceder a la cámara.");
             cerrarEscanerModal();
         });
     }
@@ -680,13 +695,13 @@
             html5QrcodeScanner.stop().then(() => {
                 html5QrcodeScanner.clear();
                 html5QrcodeScanner = null;
-            }).catch(err => console.log("Lector apagado."));
+            }).catch(err => console.log("Cámara cerrada."));
         }
     }
 
     function onScanSuccess(decodedText, decodedResult) {
         if(!decodedText.startsWith("SC26:")) {
-            alert("El código QR escaneado no es un formato válido de SwapCards.");
+            alert("El código escaneado no es válido de SwapCards.");
             cerrarEscanerModal();
             return;
         }
@@ -701,22 +716,13 @@
             const miCantidad = inventario[id];
             const cantidadRemota = parseInt(streamRemoto[index] || "0");
 
-            // Match 1: A mí me falta (0) y mi amigo la tiene repetida (>=2)
             if(miCantidad === 0 && cantidadRemota > 1) {
                 paraMiFaltantes.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
-            // Match 2: A mi amigo le falta (0) y yo la tengo repetida (>=2)
             if(cantidadRemota === 0 && miCantidad > 1) {
                 paraElRepetidas.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
         });
-
-        // CONTROL EXTRA: Evitamos que la pantalla quede vacía si no hay barajitas comunes para cambiar
-        if(paraMiFaltantes.length === 0 && paraElRepetidas.length === 0) {
-            alert("¡Cuentas escaneadas! Pero no hay barajitas compatibles para cambiar en este momento (ninguno tiene repetidas que al otro le falten).");
-            cancelarFlujoCanje();
-            return;
-        }
 
         desplegarInterfazDeSeleccion(paraMiFaltantes, paraElRepetidas);
     }
@@ -740,7 +746,7 @@
         listaIntercambioEntregar = [];
 
         if(paraMi.length === 0) {
-            contenedorRecibir.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>Tu amigo no posee repetidas que te hagan falta.</p>";
+            contenedorRecibir.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>Tu amigo no posee repetidas que te falten.</p>";
         } else {
             paraMi.forEach(item => {
                 const itemDiv = document.createElement("div");
@@ -753,7 +759,7 @@
         }
 
         if(paraEl.length === 0) {
-            contenedorEntregar.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>No posees repetidas que le falten a tu amigo.</p>";
+            contenedorEntregar.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>No tienes repetidas que a tu amigo le falten.</p>";
         } else {
             paraEl.forEach(item => {
                 const itemDiv = document.createElement("div");
@@ -821,7 +827,7 @@
 
     function confirmarEIntercambiarSeleccion() {
         if(listaIntercambioRecibir.length === 0 && listaIntercambioEntregar.length === 0) {
-            alert("Selecciona al menos una barajita para ejecutar el cambio.");
+            alert("Por favor selecciona al menos una barajita para realizar el canje.");
             return;
         }
 
@@ -837,9 +843,8 @@
             }
         });
 
-        alert("¡Álbum actualizado y guardado correctamente!");
+        alert("¡Álbum actualizado y sincronizado con éxito!");
         actualizarMétricasGlobales();
-        guardarDatosEnLocalStorage();
         cancelarFlujoCanje();
     }
 
@@ -885,7 +890,6 @@
         actualizarInterfazCasilla(idSeleccionadoModal);
         actualizarMétricasGlobales();
         ejecutarFiltrosCombinados();
-        guardarDatosEnLocalStorage();
         document.getElementById("modal-ajuste").classList.remove("activo");
     }
 
@@ -926,22 +930,6 @@
         });
     }
 
-    // PERSISTENCIA LOCAL: Guarda los datos para que no se borren en el celular al recargar
-    function guardarDatosEnLocalStorage() {
-        localStorage.setItem("swapcards_inventario", JSON.stringify(inventario));
-    }
-
-    function cargarDatosDeLocalStorage() {
-        const guardado = localStorage.getItem("swapcards_inventario");
-        if (guardado) {
-            const datosParseados = JSON.parse(guardado);
-            Object.keys(datosParseados).forEach(id => {
-                inventario[id] = datosParseados[id];
-                actualizarInterfazCasilla(id);
-            });
-        }
-    }
-
     function compartirLista() {
         let unicasPoseídas = 0;
         let totalRepetidas = 0;
@@ -952,6 +940,7 @@
         });
         
         let faltantes = totalCasillasAlbum - unicasPoseídas;
+
         let texto = `🔴 *LO QUE ME FALTA: ${faltantes}*\n`;
         
         Object.keys(estructuraAlbum).forEach(idSec => {
@@ -997,7 +986,7 @@
             navigator.share({ title: 'Mi Álbum SwapCards', text: texto }).catch(console.error);
         } else { 
             navigator.clipboard.writeText(texto); 
-            alert("¡Lista copiada al portapapeles!"); 
+            alert("¡Lista de faltantes y repetidas copiada al portapapeles con éxito!"); 
         }
     }
 
