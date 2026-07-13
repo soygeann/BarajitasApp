@@ -304,7 +304,7 @@
                         <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
                         <span id="txt-menu-status">Desactivar Estado</span>
                     </div>
-                </div>
+                    </div>
             </div>
         </div>
 
@@ -497,6 +497,7 @@
         document.getElementById("mini-menu").classList.remove("activo");
     }
 
+    // Cerrar el menú si se hace clic en cualquier otra parte de la pantalla
     document.addEventListener("click", function() {
         document.getElementById("mini-menu").classList.remove("activo");
     });
@@ -519,7 +520,7 @@
 
     function inicializarAlbum() {
         const contenedorPadre = document.getElementById("contenedor-album-dinamico");
-        contenedorPadre.innerHTML = ""; 
+        contenedorPadre.innerHTML = ""; // Limpieza por seguridad
 
         Object.keys(estructuraAlbum).forEach(idContenedor => {
             const info = estructuraAlbum[idContenedor];
@@ -715,12 +716,9 @@
             const miCantidad = inventario[id];
             const cantidadRemota = parseInt(streamRemoto[index] || "0");
 
-            // LÓGICA BI-DIRECCIONAL EXACTA:
-            // 1. Recibir: Tu amigo la tiene repetida (cantidadRemota > 1) y a ti te falta (miCantidad === 0)
             if(miCantidad === 0 && cantidadRemota > 1) {
                 paraMiFaltantes.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
-            // 2. Entregar: Tú la tienes repetida (miCantidad > 1) y a tu amigo le falta (cantidadRemota === 0)
             if(cantidadRemota === 0 && miCantidad > 1) {
                 paraElRepetidas.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
