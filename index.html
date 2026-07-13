@@ -63,10 +63,47 @@
         .btn-compartir:hover { background-color: #e2e8f0; }
         .btn-compartir svg { width: 20px; height: 20px; fill: var(--texto-principal); }
 
+        /* ESTILOS DEL MINI MENÚ DESPLEGABLE */
+        .contenedor-menu-opciones {
+            display: flex;
+            gap: 8px;
+            position: relative;
+        }
+        .menu-desplegable {
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background-color: var(--bg-tarjeta);
+            border: 1px solid var(--borde);
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            display: none;
+            z-index: 1000;
+            min-width: 200px;
+            overflow: hidden;
+            animation: fadeIn 0.2s ease-out;
+        }
+        .menu-desplegable.activo { display: block; }
+        .opcion-menu {
+            padding: 12px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--texto-principal);
+            transition: background-color 0.2s;
+            text-align: left;
+            user-select: none;
+        }
+        .opcion-menu:hover { background-color: #f1f5f9; }
+
         /* TARJETA DE PROGRESO RESUMIDA */
         .tarjeta-progreso {
             background-color: #f1f5f9; border: 1px solid var(--borde);
             border-radius: 20px; padding: 16px 20px; margin-bottom: 20px;
+            transition: opacity 0.3s ease, transform 0.3s ease;
         }
         .progreso-detalles { display: flex; gap: 24px; font-size: 14px; font-weight: 700; color: var(--texto-principal); }
         .detalle-item { display: flex; align-items: center; gap: 8px; }
@@ -253,12 +290,25 @@
                 <h1>Mi Álbum</h1>
                 <p>Mundial de Fútbol 2026</p>
             </header>
-            <button class="btn-compartir" onclick="compartirLista()" title="Compartir Lista">
-                <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
-            </button>
+            
+            <div class="contenedor-menu-opciones">
+                <button class="btn-compartir" onclick="compartirLista()" title="Compartir Lista">
+                    <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92c0-1.61-1.31-2.92-2.92-2.92z"/></svg>
+                </button>
+                <button class="btn-compartir" onclick="toggleMiniMenu(event)" title="Más Opciones">
+                    <svg viewBox="0 0 24 24"><path d="M12 8c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm0 2c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm0 6c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/></svg>
+                </button>
+                
+                <div class="menu-desplegable" id="mini-menu">
+                    <div class="opcion-menu" onclick="alternarVisibilidadStatus()">
+                        <svg viewBox="0 0 24 24" style="width:18px; height:18px; fill:currentColor;"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                        <span id="txt-menu-status">Desactivar Estado</span>
+                    </div>
+                    </div>
+            </div>
         </div>
 
-        <div class="tarjeta-progreso">
+        <div class="tarjeta-progreso" id="barra-progreso-status">
             <div class="progreso-detalles">
                 <div class="detalle-item"><div class="punto-rojo"></div> <span id="lbl-faltantes">0 faltantes</span></div>
                 <div class="detalle-item"><div class="punto-verde"></div> <span id="lbl-repetidas">0 repetidas</span></div>
@@ -422,11 +472,35 @@
     let idSeleccionadoModal = null;
     let html5QrcodeScanner = null;
 
-    // Listas temporales activas para la transacción actual
     let listaIntercambioRecibir = [];
     let listaIntercambioEntregar = [];
 
     function toggleSeccion(idSeccion) { document.getElementById(idSeccion).classList.toggle("cerrado"); }
+
+    /* ACCIONES DEL MINI MENÚ SUPERIOR */
+    function toggleMiniMenu(event) {
+        event.stopPropagation();
+        document.getElementById("mini-menu").classList.toggle("activo");
+    }
+
+    function alternarVisibilidadStatus() {
+        const barraProgreso = document.getElementById("barra-progreso-status");
+        const txtMenu = document.getElementById("txt-menu-status");
+        
+        if (barraProgreso.style.display === "none") {
+            barraProgreso.style.display = "block";
+            txtMenu.innerText = "Desactivar Estado";
+        } else {
+            barraProgreso.style.display = "none";
+            txtMenu.innerText = "Activar Estado";
+        }
+        document.getElementById("mini-menu").classList.remove("activo");
+    }
+
+    // Cerrar el menú si se hace clic en cualquier otra parte de la pantalla
+    document.addEventListener("click", function() {
+        document.getElementById("mini-menu").classList.remove("activo");
+    });
 
     function navegarA(idVista, idNav) {
         document.querySelectorAll(".vista-app").forEach(vista => vista.classList.remove("activa"));
@@ -436,7 +510,7 @@
         document.getElementById(idNav).classList.add("activo");
         
         if(idVista === 'vista-qr') {
-            cancelarFlujoCanje(); // Resetea visuales
+            cancelarFlujoCanje(); 
             generarCodigoQRPropio();
         } else {
             cerrarEscanerModal();
@@ -446,6 +520,7 @@
 
     function inicializarAlbum() {
         const contenedorPadre = document.getElementById("contenedor-album-dinamico");
+        contenedorPadre.innerHTML = ""; // Limpieza por seguridad
 
         Object.keys(estructuraAlbum).forEach(idContenedor => {
             const info = estructuraAlbum[idContenedor];
@@ -564,22 +639,18 @@
         document.getElementById("lbl-repetidas").innerText = `${totalRepetidas} repetidas`;
     }
 
-    /* MOTOR DE CREACIÓN DE QR EMBELLECIDO (CON LOGO CENTRAL "B") */
     function generarCodigoQRPropio() {
         let vectorData = "SC26:"; 
         mapaLlavesOrdenadas.forEach(id => {
             vectorData += inventario[id] > 9 ? "9" : inventario[id]; 
         });
 
-        // Crear QR usando la matriz limpia de qrcode-generator
         const qr = qrcode(0, 'M');
         qr.addData(vectorData);
         qr.make();
         
-        // Obtenemos el SVG nativo crudo para inyectarle el isotipo central
         let svgRaw = qr.createSvgTag(5, 0);
         
-        // Creamos el nodo SVG del Isotipo "B" (Círculo estético + B calada)
         const logoSvgElement = `
             <g transform="translate(100, 100) scale(0.9)">
                 <circle cx="25" cy="25" r="24" fill="url(#gradienteSwap)" stroke="#ffffff" stroke-width="2.5" />
@@ -593,19 +664,16 @@
             </defs>
         `;
         
-        // Inyectamos el logo justo antes del cierre de la etiqueta SVG
         svgRaw = svgRaw.replace('</svg>', `${logoSvgElement}</svg>`);
         
         const contenedor = document.getElementById("contenedor-qr-svg");
         contenedor.innerHTML = svgRaw;
         
-        // Ajustamos los atributos para asegurar responsividad absoluta
         const svgElement = contenedor.querySelector("svg");
         svgElement.setAttribute("width", "100%");
         svgElement.setAttribute("height", "100%");
     }
 
-    /* MODAL EXCLUSIVO PARA EL ESCANEO DE CÁMARA NATIVA */
     function abrirEscanerModal() {
         document.getElementById("modal-escaner").classList.add("activo");
         
@@ -648,11 +716,9 @@
             const miCantidad = inventario[id];
             const cantidadRemota = parseInt(streamRemoto[index] || "0");
 
-            // Él la tiene repetida (cantidadRemota > 1) y a mí me falta (miCantidad == 0)
             if(miCantidad === 0 && cantidadRemota > 1) {
                 paraMiFaltantes.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
-            // Yo la tengo repetida (miCantidad > 1) y a él le falta (cantidadRemota == 0)
             if(cantidadRemota === 0 && miCantidad > 1) {
                 paraElRepetidas.push({ id: id, tag: id.split('-')[0], num: id.split('-')[1] });
             }
@@ -663,9 +729,7 @@
 
     function onScanFailure(error) { }
 
-    /* RENDER DE LA LISTA DE SELECCIÓN CON CÍRCULOS INTERACTIVOS (ESTILO POPUP) */
     function desplegarInterfazDeSeleccion(paraMi, paraEl) {
-        // Ocultamos el generador de QR inicial
         document.getElementById("bloque-qr-generado").style.display = "none";
         document.getElementById("header-seccion-qr").style.display = "none";
         
@@ -681,7 +745,6 @@
         listaIntercambioRecibir = [];
         listaIntercambioEntregar = [];
 
-        // Inyectar en panel Recibir
         if(paraMi.length === 0) {
             contenedorRecibir.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>Tu amigo no posee repetidas que te falten.</p>";
         } else {
@@ -695,7 +758,6 @@
             });
         }
 
-        // Inyectar en panel Entregar
         if(paraEl.length === 0) {
             contenedorEntregar.innerHTML = "<p style='font-size:13px; color:var(--texto-secundario); padding: 4px 0;'>No tienes repetidas que a tu amigo le falten.</p>";
         } else {
@@ -769,13 +831,11 @@
             return;
         }
 
-        // Sumar las que recibo
         listaIntercambioRecibir.forEach(id => {
-            inventario[id] = 1; // Ahora la tengo
+            inventario[id] = 1; 
             actualizarInterfazCasilla(id);
         });
 
-        // Restar las que entrego (pierdo una copia repetida)
         listaIntercambioEntregar.forEach(id => {
             if(inventario[id] > 1) {
                 inventario[id] = inventario[id] - 1;
@@ -795,7 +855,6 @@
         generarCodigoQRPropio();
     }
 
-    /* FILTROS Y BUSQUEDA COHESIVA */
     function controlarEscrituraBuscador() {
         const input = document.getElementById("input-buscar");
         const btnLimpiar = document.getElementById("btn-limpiar");
@@ -871,7 +930,6 @@
         });
     }
 
-    /* MOTOR DE COMPARTIR LISTA DE TEXTO (CORREGIDO COMPLETO) */
     function compartirLista() {
         let unicasPoseídas = 0;
         let totalRepetidas = 0;
